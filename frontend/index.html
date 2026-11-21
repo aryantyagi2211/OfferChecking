@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>OfferCheck</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <header class="topbar">
+      <button class="brand" id="brandButton">OfferCheck</button>
+      <div class="header-actions">
+        <div class="language-toggle" aria-label="Report language">
+          <button class="active" data-language="simple_english">English</button>
+          <button data-language="hinglish">Hinglish</button>
+        </div>
+        <button class="text-button" id="howButton">How it works</button>
+      </div>
+    </header>
+
+    <main>
+      <section class="home-view" id="homeView">
+        <div class="hero">
+          <h1>A company can be real.<br>Its job offer can still be fake.</h1>
+          <p>Paste an offer. We check it against live sources and show proof.</p>
+        </div>
+
+        <div class="input-card">
+          <textarea id="offerText" aria-label="Offer text">Congratulations! You are selected for Remote AI Internship at Northgate Technologies. Stipend Rs 45,000/month. No interview needed. Pay registration fee Rs 1,999 (refundable) today to confirm your seat. Contact HR Rohit on WhatsApp. Mail: northgate.hr.careers@gmail.com</textarea>
+          <div class="input-actions">
+            <div class="input-tools">
+              <button class="outline-button" id="pasteScreenshot">Paste screenshot</button>
+              <button class="outline-button" id="uploadButton">Upload file</button>
+              <button class="outline-button" id="gmailButton">Connect Gmail</button>
+            </div>
+            <button class="primary-button" id="checkButton">Check this offer</button>
+          </div>
+        </div>
+
+        <div class="presets" aria-label="Example offers">
+          <span>Try an example:</span>
+          <button data-preset="fee">Fake fee offer</button>
+          <button data-preset="whatsapp">Fake WhatsApp job</button>
+          <button data-preset="real">Real offer</button>
+        </div>
+        <p class="error-note hidden" id="errorNote" role="alert"></p>
+        <p class="privacy-note">We never say safe. We only say what we could confirm.</p>
+      </section>
+
+      <section class="investigating-view hidden" id="investigatingView">
+        <div class="investigation-layout">
+          <article class="card offer-card">
+            <h2>Your offer</h2>
+            <p id="investigationOffer"></p>
+          </article>
+          <article class="card progress-card">
+            <h2>Checking this offer</h2>
+            <div id="progressSteps" class="progress-steps"></div>
+            <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
+          </article>
+        </div>
+      </section>
+
+      <section class="result-view hidden" id="resultView">
+        <div id="verdictCard" class="verdict-card"></div>
+
+        <div class="result-layout">
+          <article class="card offer-card">
+            <h2>Your offer</h2>
+            <p class="highlighted-offer" id="highlightedOffer"></p>
+          </article>
+          <article class="card ledger-card">
+            <h2>What we checked</h2>
+            <div id="claimLedger"></div>
+          </article>
+        </div>
+
+        <div class="action-grid">
+          <article class="card">
+            <h2>Do this now</h2>
+            <ol id="doNowList"></ol>
+          </article>
+          <article class="card">
+            <h2>We could not confirm</h2>
+            <ul class="cant-list" id="cantVerifyList"></ul>
+          </article>
+          <article class="card">
+            <h2>Ask the recruiter</h2>
+            <div id="askList"></div>
+            <p class="card-note">A real recruiter will not mind these questions.</p>
+          </article>
+        </div>
+      </section>
+    </main>
+
+    <div class="overlay hidden" id="overlay"></div>
+    <aside class="sources-drawer hidden" id="sourcesDrawer" aria-label="Sources">
+      <div class="drawer-header">
+        <h2>Sources we used</h2>
+        <button class="icon-button" id="closeSources" aria-label="Close sources">×</button>
+      </div>
+      <div id="sourceList"></div>
+      <p class="drawer-note">A source supports one claim. It does not prove everything else.</p>
+    </aside>
+
+    <div class="modal-backdrop hidden" id="modalBackdrop">
+      <section class="upload-modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+        <div class="modal-header">
+          <h2 id="modalTitle">Add your offer</h2>
+          <button class="icon-button" id="closeModal" aria-label="Close">×</button>
+        </div>
+        <div class="tabs">
+          <button class="tab active" data-tab="upload">Upload</button>
+          <button class="tab" data-tab="gmail">Gmail</button>
+        </div>
+        <div id="uploadTab">
+          <div class="drop-zone" id="dropZone">
+            <strong>Drop a screenshot, PDF or .eml file here</strong>
+            <span>or paste with Ctrl+V</span>
+            <small>Images, PDF, .eml. Max 10 MB. We delete files after checking.</small>
+            <input type="file" id="fileInput" accept="image/*,.pdf,.eml" hidden>
+          </div>
+        </div>
+        <div id="gmailTab" class="hidden">
+          <div class="email-list">
+            <div><span>Northgate HR · Internship Selection Letter</span><button>Check</button></div>
+            <div><span>Talent Team · Congratulations on your offer</span><button>Check</button></div>
+            <div><span>Hiring Desk · Final step: confirm your seat</span><button>Check</button></div>
+          </div>
+          <p class="card-note">We only read the email you pick. Read-only access.</p>
+        </div>
+      </section>
+    </div>
+
+    <script src="app.js"></script>
+  </body>
+</html>

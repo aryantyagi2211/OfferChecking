@@ -1,0 +1,108 @@
+{
+  "verdict_level": "HIGH_RISK",
+  "language": "simple_english",
+  "headline": "Do not pay. This offer looks fake.",
+  "summary": "The company's own site says it never asks for money. We could not confirm the recruiter.",
+  "claims": [
+    {
+      "claim_id": "c1",
+      "status": "CONTRADICTED",
+      "text": "Pay Rs 1,999 registration fee.",
+      "reason": "Northgate's own page says it never asks candidates for money.",
+      "evidence_ids": ["e1"],
+      "highlight": "Pay registration fee Rs 1,999"
+    },
+    {
+      "claim_id": "c2",
+      "status": "CONTRADICTED",
+      "text": "Recruiter emails from Gmail.",
+      "reason": "Northgate emails come from @northgate.com, not Gmail.",
+      "evidence_ids": ["e2"],
+      "highlight": "northgate.hr.careers@gmail.com"
+    },
+    {
+      "claim_id": "c3",
+      "status": "UNVERIFIED",
+      "text": "Remote AI Internship.",
+      "reason": "No matching role on Northgate's careers page.",
+      "evidence_ids": ["e2"],
+      "highlight": "Remote AI Internship"
+    },
+    {
+      "claim_id": "c4",
+      "status": "UNVERIFIED",
+      "text": "HR Rohit works at Northgate.",
+      "reason": "We could not confirm this person works there.",
+      "evidence_ids": [],
+      "highlight": "HR Rohit"
+    },
+    {
+      "claim_id": "c5",
+      "status": "UNVERIFIED",
+      "text": "Stipend Rs 45,000/month.",
+      "reason": "We found no pay details for this role.",
+      "evidence_ids": [],
+      "highlight": "Rs 45,000/month"
+    },
+    {
+      "claim_id": "c6",
+      "status": "SUPPORTED",
+      "text": "Northgate Technologies.",
+      "reason": "The company is real.",
+      "evidence_ids": ["e3"],
+      "highlight": "Northgate Technologies"
+    }
+  ],
+  "cant_verify": [
+    "Who Rohit really is",
+    "If this role exists",
+    "The stipend amount"
+  ],
+  "do_this": [
+    "Do not pay anything.",
+    "Email Northgate using the address on northgate.com.",
+    "Block the number and report it on cybercrime.gov.in."
+  ],
+  "ask_them": [
+    "Can you email me from an @northgate.com address?",
+    "What is the job ID on the careers page?"
+  ],
+  "sources": [
+    {
+      "id": "e1",
+      "url": "https://northgate.com/fraud-alert",
+      "title": "Northgate fraud alert",
+      "domain": "northgate.com/fraud-alert",
+      "source_type": "official",
+      "snippet": "Northgate never asks candidates to pay fees for jobs or internships.",
+      "retrieved_at": "2026-11-21T10:42:00+05:30"
+    },
+    {
+      "id": "e2",
+      "url": "https://northgate.com/careers",
+      "title": "Careers at Northgate",
+      "domain": "northgate.com/careers",
+      "source_type": "official",
+      "snippet": "Official Northgate recruiters use @northgate.com email addresses.",
+      "retrieved_at": "2026-11-21T10:42:00+05:30"
+    },
+    {
+      "id": "e3",
+      "url": "https://example.com/northgate-news",
+      "title": "Northgate opens new office",
+      "domain": "Business news",
+      "source_type": "news",
+      "snippet": "Northgate Technologies announced a new office and business expansion.",
+      "retrieved_at": "2026-11-21T10:42:00+05:30"
+    },
+    {
+      "id": "e4",
+      "url": "https://reddit.com/example/fake-internships",
+      "title": "Fake internship offers, beware",
+      "domain": "Reddit thread",
+      "source_type": "forum",
+      "snippet": "People reported fake internship messages asking for registration fees.",
+      "retrieved_at": "2026-11-21T10:42:00+05:30"
+    }
+  ]
+}

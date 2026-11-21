@@ -1,0 +1,22 @@
+[
+  {
+    "name": "scam_on_real_company",
+    "offer": "Pay Rs 1,999 registration fee to join Northgate Technologies.",
+    "extracted": {"company": "Northgate Technologies", "recruiter": "Rohit", "email_domain": "gmail.com", "role": "AI Internship", "pay": "Rs 45,000/month", "fee_asked": true, "fee_amount": "Rs 1,999", "payment_channel": null, "urgency": "today"}
+  },
+  {
+    "name": "subtle_scam",
+    "offer": "Send OTP to confirm your Northgate interview.",
+    "extracted": {"company": "Northgate Technologies", "recruiter": null, "email_domain": "gmail.com", "role": null, "pay": null, "fee_asked": false, "fee_amount": null, "payment_channel": "UPI", "urgency": null}
+  },
+  {
+    "name": "legit_offer",
+    "offer": "The listed role is on the Riverbend careers page. No fee is required.",
+    "extracted": {"company": "Riverbend Software", "recruiter": "Priya", "email_domain": "riverbend.example", "role": "Data Intern", "pay": "Rs 12,000/month", "fee_asked": false, "fee_amount": null, "payment_channel": null, "urgency": null}
+  },
+  {
+    "name": "tiny_company_unverified",
+    "offer": "Riverbend Software is hiring for a remote role.",
+    "extracted": {"company": "Riverbend Software", "recruiter": "Priya", "email_domain": null, "role": "Remote Data Intern", "pay": "Rs 12,000/month", "fee_asked": false, "fee_amount": null, "payment_channel": null, "urgency": null}
+  }
+]
