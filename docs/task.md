@@ -286,6 +286,8 @@ Do NOT build: accounts/login, database history, multi-agent orchestration, socia
 - [blocked 2026-11-21] Gemini test now confirms "API key not valid"; You.com search passed.
 - [blocker 2026-11-21] Project code now uses the Gemini key variable and native Gemini REST. Native key testing is blocked until the local .env file is saved with the new variable name.
 - [keys 2026-11-21] You.com search passed and Gemini native AQ-key generateContent passed. The local env now exposes GEMINI_API_KEY.
+- [models 2026-11-21] Gemini AQ key and analyze call passed. Extract call timed out; env.example now uses available 2.5 Flash Lite/Flash model names.
+- [models 2026-11-21] Extract model quick call returned 503 service unavailable; You.com and Gemini analyze calls both passed.
 
 ---
 

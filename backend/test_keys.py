@@ -23,7 +23,7 @@ async def main() -> None:
     })
 
     if you_key:
-        async with httpx.AsyncClient(timeout=30) as client:
+        async with httpx.AsyncClient(timeout=60) as client:
             response = await client.post(
                 "https://ydc-index.io/v1/search",
                 headers={"X-API-Key": you_key, "Content-Type": "application/json"},
@@ -69,16 +69,19 @@ async def main() -> None:
                 print("models_list_status", response.status_code)
 
     if gemini_key and extract_model:
-        async with httpx.AsyncClient(timeout=30) as client:
-            response = await client.post(
-                f"https://generativelanguage.googleapis.com/v1beta/models/{extract_model}:generateContent",
-                headers={"x-goog-api-key": gemini_key, "Content-Type": "application/json"},
-                json={
-                    "contents": [{"role": "user", "parts": [{"text": "Reply with exactly OK"}]}],
-                    "generationConfig": {"temperature": 0, "maxOutputTokens": 8},
-                },
-            )
-            print("extract_model_status", response.status_code, "ok", response.status_code == 200)
+        try:
+            async with httpx.AsyncClient(timeout=60) as client:
+                response = await client.post(
+                    f"https://generativelanguage.googleapis.com/v1beta/models/{extract_model}:generateContent",
+                    headers={"x-goog-api-key": gemini_key, "Content-Type": "application/json"},
+                    json={
+                        "contents": [{"role": "user", "parts": [{"text": "Reply with exactly OK"}]}],
+                        "generationConfig": {"temperature": 0, "maxOutputTokens": 8},
+                    },
+                )
+                print("extract_model_status", response.status_code, "ok", response.status_code == 200)
+        except httpx.ReadTimeout:
+            print("extract_model_status timeout")
 
 
 asyncio.run(main())
