@@ -50,6 +50,26 @@ OfferCheck extracts offer claims, checks companies, recruiters, and domains agai
 - Gmail OAuth tokens are held in process memory, not written to files; sessions are lost when the server restarts.
 - OfferCheck is an evidence aid, not legal or financial advice. Verify important claims using contact details from the employer’s official website.
 
+## Pitch & Product Showcase
+
+### Slides 1–4
+
+| Slide 1 | Slide 2 |
+| --- | --- |
+| <img src="assets/OfferCheck%20%E2%80%94%20Real-Time%20Job%20Scam%20Verification_page-0001.jpg" alt="OfferCheck — Real-Time Job Scam Verification_page-0001.jpg" width="100%"><br>`OfferCheck — Real-Time Job Scam Verification_page-0001.jpg` | <img src="assets/OfferCheck%20%E2%80%94%20Real-Time%20Job%20Scam%20Verification_page-0002.jpg" alt="OfferCheck — Real-Time Job Scam Verification_page-0002.jpg" width="100%"><br>`OfferCheck — Real-Time Job Scam Verification_page-0002.jpg` |
+| **Slide 3**<br><img src="assets/OfferCheck%20%E2%80%94%20Real-Time%20Job%20Scam%20Verification_page-0003.jpg" alt="OfferCheck — Real-Time Job Scam Verification_page-0003.jpg" width="100%"><br>`OfferCheck — Real-Time Job Scam Verification_page-0003.jpg` | **Slide 4**<br><img src="assets/OfferCheck%20%E2%80%94%20Real-Time%20Job%20Scam%20Verification_page-0004.jpg" alt="OfferCheck — Real-Time Job Scam Verification_page-0004.jpg" width="100%"><br>`OfferCheck — Real-Time Job Scam Verification_page-0004.jpg` |
+
+<details>
+<summary>Slides 5–9</summary>
+
+| Slide 5 | Slide 6 |
+| --- | --- |
+| <img src="assets/OfferCheck%20%E2%80%94%20Real-Time%20Job%20Scam%20Verification_page-0005.jpg" alt="OfferCheck — Real-Time Job Scam Verification_page-0005.jpg" width="100%"><br>`OfferCheck — Real-Time Job Scam Verification_page-0005.jpg` | <img src="assets/OfferCheck%20%E2%80%94%20Real-Time%20Job%20Scam%20Verification_page-0006.jpg" alt="OfferCheck — Real-Time Job Scam Verification_page-0006.jpg" width="100%"><br>`OfferCheck — Real-Time Job Scam Verification_page-0006.jpg` |
+| **Slide 7**<br><img src="assets/OfferCheck%20%E2%80%94%20Real-Time%20Job%20Scam%20Verification_page-0007.jpg" alt="OfferCheck — Real-Time Job Scam Verification_page-0007.jpg" width="100%"><br>`OfferCheck — Real-Time Job Scam Verification_page-0007.jpg` | **Slide 8**<br><img src="assets/OfferCheck%20%E2%80%94%20Real-Time%20Job%20Scam%20Verification_page-0008.jpg" alt="OfferCheck — Real-Time Job Scam Verification_page-0008.jpg" width="100%"><br>`OfferCheck — Real-Time Job Scam Verification_page-0008.jpg` |
+| **Slide 9**<br><img src="assets/OfferCheck%20%E2%80%94%20Real-Time%20Job%20Scam%20Verification_page-0009.jpg" alt="OfferCheck — Real-Time Job Scam Verification_page-0009.jpg" width="100%"><br>`OfferCheck — Real-Time Job Scam Verification_page-0009.jpg` | |
+
+</details>
+
 ## Try the app
 
 1. Start OfferCheck using the setup below and open [http://127.0.0.1:8000](http://127.0.0.1:8000).
