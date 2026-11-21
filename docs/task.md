@@ -281,6 +281,7 @@ Do NOT build: accounts/login, database history, multi-agent orchestration, socia
 - [ui-backend-2.8 2026-11-21] Enforced 10 MB and accepted file types; uploads remain memory-only and are not stored.
 - [ui-2.10 2026-11-21] Added Simple English / Hinglish toggle and sent the selected language to /analyze.
 - [security 2026-11-21] Replaced accidental key values in .env.example with placeholders; no real .env file was created.
+- [keys 2026-11-21] Aryan will create his own .env; the app loads it with python-dotenv, and agents will not read or print key values.
 
 ---
 
