@@ -31,6 +31,8 @@ def _encoded_body(text: str) -> str:
 
 
 class FakeGoogleClient:
+    candidate_mode = "paged"
+
     def __init__(self, timeout=None):
         self.timeout = timeout
 
@@ -66,25 +68,72 @@ class FakeGoogleClient:
         }
         request = httpx.Request("GET", url)
         if url.endswith("/messages"):
-            assert params["maxResults"] == "15"
-            assert "internship" in params["q"]
-            return httpx.Response(200, json={"messages": [{"id": "message-1"}]}, request=request)
-        assert url.endswith("/messages/message-1")
+            assert params["maxResults"] == "25"
+            assert "freelance" in params["q"]
+            assert "-category:promotions" in params["q"]
+            assert "-category:social" in params["q"]
+            if self.candidate_mode == "empty":
+                return httpx.Response(200, json={"messages": []}, request=request)
+            if self.candidate_mode == "few":
+                return httpx.Response(
+                    200,
+                    json={"messages": [{"id": "message-1"}, {"id": "message-noise"}, {"id": "message-2"}]},
+                    request=request,
+                )
+            if params.get("pageToken"):
+                return httpx.Response(
+                    200,
+                    json={"messages": [{"id": "message-10"}, {"id": "message-11"}]},
+                    request=request,
+                )
+            return httpx.Response(
+                200,
+                json={
+                    "messages": [
+                        *({"id": f"message-{number}"} for number in range(1, 10)),
+                        {"id": "message-noise"},
+                    ],
+                    "nextPageToken": "page-2",
+                },
+                request=request,
+            )
+        message_id = url.rsplit("/", 1)[-1]
+        assert message_id.startswith("message-")
+        if message_id == "message-noise":
+            subject = "Limited-time offer: headphones"
+            body_text = "Save 30 percent on headphones during our store sale."
+            headers = []
+            internal_date = "1800000000000"
+        elif message_id == "message-1":
+            subject = "Internship offer"
+            body_text = "Role: Data Intern\nStipend: Rs 12,000"
+            headers = [
+                {"name": "From", "value": "Recruiter <jobs@example.org>"},
+                {"name": "Reply-To", "value": "reply@gmail.com"},
+                {"name": "Received-SPF", "value": "pass"},
+                {"name": "Authentication-Results", "value": "mx.example; dkim=fail"},
+                {"name": "Subject", "value": subject},
+                {"name": "Date", "value": "Sat, 21 Nov 2026 10:00:00 +0000"},
+            ]
+            internal_date = "1799999999000"
+        else:
+            subject = f"Data internship offer {message_id}"
+            body_text = f"Role: Data Intern {message_id}; Stipend Rs 12,000."
+            headers = [
+                {"name": "From", "value": "Recruiter <jobs@example.org>"},
+                {"name": "Subject", "value": subject},
+                {"name": "Date", "value": "Sat, 21 Nov 2026 10:00:00 +0000"},
+            ]
+            internal_date = str(1799999998000 - int(message_id.split("-")[-1]) * 1000)
         return httpx.Response(
             200,
             json={
-                "id": "message-1",
-                "snippet": "An internship offer",
+                "id": message_id,
+                "internalDate": internal_date,
+                "snippet": "An internship offer" if message_id != "message-noise" else "Store sale",
                 "payload": {
                     "mimeType": "multipart/alternative",
-                    "headers": [
-                        {"name": "From", "value": "Recruiter <jobs@example.org>"},
-                        {"name": "Reply-To", "value": "reply@gmail.com"},
-                        {"name": "Received-SPF", "value": "pass"},
-                        {"name": "Authentication-Results", "value": "mx.example; dkim=fail"},
-                        {"name": "Subject", "value": "Internship offer"},
-                        {"name": "Date", "value": "Sat, 21 Nov 2026 10:00:00 +0000"},
-                    ],
+                    "headers": headers,
                     "parts": [
                         {
                             "mimeType": "text/html",
@@ -92,7 +141,7 @@ class FakeGoogleClient:
                         },
                         {
                             "mimeType": "text/plain",
-                            "body": {"data": _encoded_body("Role: Data Intern\nStipend: Rs 12,000")},
+                            "body": {"data": _encoded_body(body_text)},
                         },
                     ],
                 },
@@ -140,12 +189,26 @@ async def run_gmail_oauth_checks():
 
                 messages = await client.get("/api/gmail/messages")
                 assert messages.status_code == 200
-                message = messages.json()["messages"][0]
+                found_messages = messages.json()["messages"]
+                assert len(found_messages) == 10
+                assert [message["id"] for message in found_messages] == [
+                    f"message-{number}" for number in range(1, 11)
+                ]
+                message = found_messages[0]
                 assert message["sender"] == "Recruiter <jobs@example.org>"
                 assert message["subject"] == "Internship offer"
                 assert message["date"] == "Sat, 21 Nov 2026 10:00:00 +0000"
                 assert message["snippet"] == "An internship offer"
                 assert message["body"] == "Role: Data Intern\nStipend: Rs 12,000"
+
+                FakeGoogleClient.candidate_mode = "few"
+                few_messages = await client.get("/api/gmail/messages")
+                assert [item["id"] for item in few_messages.json()["messages"]] == ["message-1", "message-2"]
+                FakeGoogleClient.candidate_mode = "empty"
+                empty_messages = await client.get("/api/gmail/messages")
+                assert empty_messages.json() == {"messages": []}
+                FakeGoogleClient.candidate_mode = "paged"
+
                 session_id = next(iter(gmail_oauth.sessions))
                 gmail_oauth.sessions[session_id].expires_at = 0
                 refreshed = await client.get("/api/gmail/messages")

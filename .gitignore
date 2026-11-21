@@ -10,6 +10,14 @@ client_secret*.json
 token.json
 token_*.json
 
+# Internal agent instructions and planning docs (kept locally, not published)
+/AGENT.md
+/AGENTS.md
+/CLAUDE.md
+/GEMINI.md
+/.github/copilot-instructions.md
+/docs/
+
 # Python
 .venv/
 venv/

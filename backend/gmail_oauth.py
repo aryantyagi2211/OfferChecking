@@ -31,7 +31,27 @@ STATE_COOKIE = "offercheck_gmail_oauth_state"
 STATE_TTL_SECONDS = 600
 SESSION_TTL_SECONDS = 30 * 24 * 60 * 60
 MAX_EMAIL_BODY_CHARS = 20000
-GMAIL_SEARCH_QUERY = "newer_than:30d {job internship offer recruiter hiring}"
+GMAIL_PAGE_SIZE = 25
+GMAIL_MAX_RESULTS = 10
+GMAIL_SEARCH_QUERY = (
+    'newer_than:30d {offer internship job hiring hired interview selected stipend '
+    'freelance contract onboarding "appointment letter" recruiter} '
+    '-category:promotions -category:social'
+)
+JOB_CONTEXT = re.compile(
+    r"\b(?:jobs?|intern(?:ship)?|freelanc(?:e|er|ing)|recruit(?:er|ment|ing)|"
+    r"hiring|interview|candidate|vacanc(?:y|ies)|career(?:s)?|employment|stipend)\b",
+    re.IGNORECASE,
+)
+OFFER_CONTEXT = re.compile(
+    r"\b(?:offer(?:\s+letter)?|selected|selection|appointment|onboarding|contract)\b",
+    re.IGNORECASE,
+)
+EMPLOYMENT_CONTEXT = re.compile(
+    r"\b(?:job|intern(?:ship)?|freelanc(?:e|er|ing)|role|position|salary|stipend|"
+    r"recruiter|candidate|employment|employee|employer|joining)\b",
+    re.IGNORECASE,
+)
 
 
 @dataclass
@@ -438,6 +458,23 @@ def _email_message(message: dict[str, Any]) -> dict[str, str]:
     }
 
 
+def is_job_related_email(message: dict[str, str]) -> bool:
+    text = " ".join(
+        message.get(field, "")
+        for field in ("subject", "snippet", "body")
+    )
+    return bool(JOB_CONTEXT.search(text) or (
+        OFFER_CONTEXT.search(text) and EMPLOYMENT_CONTEXT.search(text)
+    ))
+
+
+def _internal_date(message: dict[str, Any]) -> int:
+    try:
+        return int(message.get("internalDate", 0))
+    except (TypeError, ValueError):
+        return 0
+
+
 async def load_gmail_offer_text(session_id: str, message_id: str) -> tuple[str, list[str]]:
     message = await _gmail_api_get(
         session_id,
@@ -462,28 +499,45 @@ async def gmail_messages(request: Request):
     if not session_id:
         raise HTTPException(status_code=401, detail="Connect Gmail to view your messages.")
 
-    listing = await _gmail_api_get(
-        session_id,
-        "messages",
-        {"q": GMAIL_SEARCH_QUERY, "maxResults": "15"},
-    )
-    messages = listing.get("messages", [])
-    if not isinstance(messages, list):
-        raise HTTPException(status_code=502, detail="Gmail returned an invalid message list.")
-    if not messages:
-        return {"messages": []}
-
     semaphore = asyncio.Semaphore(5)
 
-    async def load_message(item: dict[str, Any]) -> dict[str, str]:
+    async def load_message(item: dict[str, Any]) -> dict[str, Any]:
         message_id = item.get("id")
         if not isinstance(message_id, str) or not message_id:
             raise HTTPException(status_code=502, detail="Gmail returned an invalid message reference.")
         async with semaphore:
-            message = await _gmail_api_get(session_id, f"messages/{quote(message_id, safe='')}", {"format": "full"})
-        return _email_message(message)
+            return await _gmail_api_get(
+                session_id,
+                f"messages/{quote(message_id, safe='')}",
+                {"format": "full"},
+            )
 
-    return {"messages": await asyncio.gather(*(load_message(item) for item in messages))}
+    matches = []
+    page_token = None
+    while len(matches) < GMAIL_MAX_RESULTS:
+        params = {
+            "q": GMAIL_SEARCH_QUERY,
+            "maxResults": str(GMAIL_PAGE_SIZE),
+        }
+        if page_token:
+            params["pageToken"] = page_token
+        listing = await _gmail_api_get(session_id, "messages", params)
+        candidates = listing.get("messages", [])
+        if not isinstance(candidates, list):
+            raise HTTPException(status_code=502, detail="Gmail returned an invalid message list.")
+        if candidates:
+            full_messages = await asyncio.gather(*(load_message(item) for item in candidates))
+            full_messages.sort(key=_internal_date, reverse=True)
+            for full_message in full_messages:
+                message = _email_message(full_message)
+                if is_job_related_email(message):
+                    matches.append(message)
+                    if len(matches) == GMAIL_MAX_RESULTS:
+                        break
+        page_token = listing.get("nextPageToken")
+        if not page_token:
+            break
+    return {"messages": matches}
 
 
 @router.post("/api/gmail/disconnect")
