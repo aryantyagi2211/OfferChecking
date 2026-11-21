@@ -288,6 +288,7 @@ Do NOT build: accounts/login, database history, multi-agent orchestration, socia
 - [keys 2026-11-21] You.com search passed and Gemini native AQ-key generateContent passed. The local env now exposes GEMINI_API_KEY.
 - [models 2026-11-21] Gemini AQ key and analyze call passed. Extract call timed out; env.example now uses available 2.5 Flash Lite/Flash model names.
 - [models 2026-11-21] Extract model quick call returned 503 service unavailable; You.com and Gemini analyze calls both passed.
+- [retry-search 2026-11-21] Added Gemini 503/timeout retry and ANALYZE_MODEL fallback. Extraction succeeded via fallback; You.com returned five results.web items with URL, title and snippets.
 
 ---
 

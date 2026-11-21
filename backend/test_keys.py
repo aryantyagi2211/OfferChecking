@@ -1,87 +1,73 @@
 import asyncio
+import logging
 import os
+import sys
 from pathlib import Path
 
 import httpx
 from dotenv import load_dotenv
 
+from extractor import extract_offer
+
 
 load_dotenv(Path(__file__).resolve().parent.parent / ".env")
+sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+logging.basicConfig(level=logging.WARNING, format="%(message)s")
 
 
 async def main() -> None:
-    you_key = os.getenv("YOU_API_KEY", "")
-    gemini_key = os.getenv("GEMINI_API_KEY", "")
-    extract_model = os.getenv("EXTRACT_MODEL", "")
-    analyze_model = os.getenv("ANALYZE_MODEL", "")
+    you_key = os.getenv("YOU_API_KEY")
+    if not you_key:
+        raise RuntimeError("YOU_API_KEY is not configured")
 
-    print("config", {
-        "you": bool(you_key),
-        "gemini": bool(gemini_key),
-        "extract_model": bool(extract_model),
-        "analyze_model": bool(analyze_model),
-    })
+    async with httpx.AsyncClient(timeout=60) as client:
+        response = await client.post(
+            "https://ydc-index.io/v1/search",
+            headers={"X-API-Key": you_key, "Content-Type": "application/json"},
+            json={
+                "query": "Northgate Technologies job offer registration fee scam",
+                "count": 5,
+                "country": "IN",
+                "language": "EN",
+            },
+        )
+        response.raise_for_status()
+    result_data = response.json().get("results", {})
+    web_results = result_data.get("web", []) if isinstance(result_data, dict) else []
+    print("you_search_results.web:")
+    for item in web_results:
+        print({
+            "url": item.get("url"),
+            "title": item.get("title"),
+            "snippets": item.get("snippets", []),
+        })
 
-    if you_key:
-        async with httpx.AsyncClient(timeout=60) as client:
-            response = await client.post(
-                "https://ydc-index.io/v1/search",
-                headers={"X-API-Key": you_key, "Content-Type": "application/json"},
-                json={"query": "Northgate Technologies official website", "count": 2, "country": "IN"},
-            )
-            result_count = 0
-            if response.headers.get("content-type", "").startswith("application/json"):
-                result_count = len(response.json().get("results", []))
-            print("you_status", response.status_code, "results", result_count)
-
-    if gemini_key and analyze_model:
-        async with httpx.AsyncClient(timeout=30) as client:
-            response = await client.post(
-                f"https://generativelanguage.googleapis.com/v1beta/models/{analyze_model}:generateContent",
-                headers={"x-goog-api-key": gemini_key, "Content-Type": "application/json"},
+    print("extract_model:", os.getenv("EXTRACT_MODEL"))
+    print("analyze_model:", os.getenv("ANALYZE_MODEL"))
+    try:
+        async with httpx.AsyncClient(timeout=20) as client:
+            probe = await client.post(
+                f"https://generativelanguage.googleapis.com/v1beta/models/{os.getenv('EXTRACT_MODEL')}:generateContent",
+                headers={"x-goog-api-key": os.getenv("GEMINI_API_KEY"), "Content-Type": "application/json"},
                 json={
                     "contents": [{"role": "user", "parts": [{"text": "Reply with exactly OK"}]}],
                     "generationConfig": {"temperature": 0, "maxOutputTokens": 8},
                 },
             )
-            if response.status_code == 200:
-                print("gemini_status", response.status_code, "ok", True)
-            else:
-                try:
-                    error = response.json().get("error", {})
-                    print("gemini_status", response.status_code, "error", error.get("status"), "message", error.get("message", "")[:200])
-                except Exception:
-                    print("gemini_status", response.status_code, "ok", False)
-        async with httpx.AsyncClient(timeout=30) as client:
-            response = await client.get(
-                "https://generativelanguage.googleapis.com/v1beta/models",
-                headers={"x-goog-api-key": gemini_key},
-                params={"pageSize": 100},
-            )
-            if response.status_code == 200:
-                names = [
-                    item["name"].removeprefix("models/")
-                    for item in response.json().get("models", [])
-                    if "generateContent" in item.get("supportedGenerationMethods", [])
-                ]
-                print("available_generate_models", names[:20])
-            else:
-                print("models_list_status", response.status_code)
+            print("extract_model_probe:", probe.status_code)
+    except httpx.TimeoutException:
+        print("extract_model_probe: timeout")
 
-    if gemini_key and extract_model:
-        try:
-            async with httpx.AsyncClient(timeout=60) as client:
-                response = await client.post(
-                    f"https://generativelanguage.googleapis.com/v1beta/models/{extract_model}:generateContent",
-                    headers={"x-goog-api-key": gemini_key, "Content-Type": "application/json"},
-                    json={
-                        "contents": [{"role": "user", "parts": [{"text": "Reply with exactly OK"}]}],
-                        "generationConfig": {"temperature": 0, "maxOutputTokens": 8},
-                    },
-                )
-                print("extract_model_status", response.status_code, "ok", response.status_code == 200)
-        except httpx.ReadTimeout:
-            print("extract_model_status timeout")
+    try:
+        offer = await extract_offer(
+            "Northgate Technologies internship. Pay Rs 1,999 registration fee today. "
+            "Contact HR Rohit at northgate.hr.careers@gmail.com."
+        )
+        print("gemini_extraction_ok:", bool(offer.company or offer.role or offer.fee_asked))
+        print("extracted_claims:", offer.model_dump(exclude_none=True))
+    except (httpx.HTTPStatusError, httpx.TimeoutException, RuntimeError) as error:
+        status = error.response.status_code if isinstance(error, httpx.HTTPStatusError) else type(error).__name__
+        print("gemini_extraction_failed:", status, str(error)[:200])
 
 
 asyncio.run(main())
