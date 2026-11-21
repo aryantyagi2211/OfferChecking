@@ -319,7 +319,10 @@ async function captureScreen() {
   let stream = null;
   try {
     showCaptureStatus("Choose a tab, window, or screen to capture…");
-    stream = await mediaDevices.getDisplayMedia({ video: true });
+    stream = await mediaDevices.getDisplayMedia({
+      video: { displaySurface: "monitor" },
+      surfaceSwitching: "exclude",
+    });
     const file = await captureDisplayFrame(stream);
     if (file.size > 10 * 1024 * 1024) {
       showCaptureStatus("Captured screenshot exceeds the 10 MB limit. Nothing was uploaded.", "error");
