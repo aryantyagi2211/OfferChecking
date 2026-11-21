@@ -1,0 +1,53 @@
+[
+  {
+    "preset_id": "fee",
+    "offer_text": "Congratulations! You are selected for Remote AI Internship at Infosys. Stipend Rs 45,000/month. No interview needed. Pay registration fee Rs 1,999 (refundable) today to confirm your seat. Contact HR Rohit on WhatsApp. Mail: infosys.hr.careers@gmail.com",
+    "extracted": {
+      "company": "Infosys",
+      "recruiter": "Rohit",
+      "email_domain": "gmail.com",
+      "company_domain": "infosys.com",
+      "website_url": "https://www.infosys.com",
+      "role": "Remote AI Internship",
+      "pay": "Rs 45,000/month",
+      "fee_asked": true,
+      "fee_amount": "Rs 1,999",
+      "payment_channel": null,
+      "urgency": "today"
+    }
+  },
+  {
+    "preset_id": "whatsapp",
+    "offer_text": "A recruiter on WhatsApp says Infosys is hiring for Data Entry. Pay Rs 2,499 registration fee by UPI today to start. No interview. Contact HR on Telegram.",
+    "extracted": {
+      "company": "Infosys",
+      "recruiter": null,
+      "email_domain": null,
+      "company_domain": "infosys.com",
+      "website_url": "https://www.infosys.com",
+      "role": "Data Entry",
+      "pay": null,
+      "fee_asked": true,
+      "fee_amount": "Rs 2,499",
+      "payment_channel": "UPI",
+      "urgency": "today"
+    }
+  },
+  {
+    "preset_id": "no_fee",
+    "offer_text": "Infosys invited me to interview for the Product Analyst role listed on its careers page. No fee is required.",
+    "extracted": {
+      "company": "Infosys",
+      "recruiter": null,
+      "email_domain": null,
+      "company_domain": "infosys.com",
+      "website_url": "https://www.infosys.com",
+      "role": "Product Analyst",
+      "pay": null,
+      "fee_asked": false,
+      "fee_amount": null,
+      "payment_channel": null,
+      "urgency": null
+    }
+  }
+]

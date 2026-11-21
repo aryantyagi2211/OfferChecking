@@ -8,6 +8,7 @@ import httpx
 from dotenv import load_dotenv
 
 from extractor import extract_offer
+from llm import gemini_api_key_for
 
 
 load_dotenv(Path(__file__).resolve().parent.parent / ".env")
@@ -48,7 +49,7 @@ async def main() -> None:
         async with httpx.AsyncClient(timeout=20) as client:
             probe = await client.post(
                 f"https://generativelanguage.googleapis.com/v1beta/models/{os.getenv('EXTRACT_MODEL')}:generateContent",
-                headers={"x-goog-api-key": os.getenv("GEMINI_API_KEY"), "Content-Type": "application/json"},
+                headers={"x-goog-api-key": gemini_api_key_for("vision"), "Content-Type": "application/json"},
                 json={
                     "contents": [{"role": "user", "parts": [{"text": "Reply with exactly OK"}]}],
                     "generationConfig": {"temperature": 0, "maxOutputTokens": 8},
@@ -59,7 +60,7 @@ async def main() -> None:
         print("extract_model_probe: timeout")
 
     try:
-        offer = await extract_offer(
+        offer, _ = await extract_offer(
             "Northgate Technologies internship. Pay Rs 1,999 registration fee today. "
             "Contact HR Rohit at northgate.hr.careers@gmail.com."
         )

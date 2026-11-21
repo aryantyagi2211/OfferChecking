@@ -1,6 +1,6 @@
 from typing import Literal
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class Claim(BaseModel):
@@ -15,6 +15,8 @@ class ExtractedOffer(BaseModel):
     company: str | None = None
     recruiter: str | None = None
     email_domain: str | None = None
+    company_domain: str | None = None
+    website_url: str | None = None
     role: str | None = None
     pay: str | None = None
     fee_asked: bool | None = None
@@ -32,6 +34,9 @@ class Evidence(BaseModel):
     source_type: Literal["official", "news", "forum", "unknown"]
     retrieved_at: str
     domain: str
+    query_types: list[
+        Literal["official", "careers", "fraud_notice", "scam_reports", "registration_news"]
+    ] = Field(default_factory=list)
 
 
 class Finding(BaseModel):

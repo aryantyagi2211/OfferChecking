@@ -148,7 +148,7 @@ The LLM may only pick from and shorten these (backend fills placeholders like {c
 - Wording: "signals found / could not verify". Never "this company is a scam".
 - Do not store uploads or offer text after processing. Do not log contents.
 - Gmail: read-only scope, user picks one message, token kept in session only.
-- Demo fallback: cache You.com responses for the 3 demo presets so a live API failure cannot kill the demo.
+- Demo fallback: use cached extraction details for the 3 exact presets when Gemini is rate-limited/times out, and cache successful matching reports in the browser. Label any reused report and its older citations.
 
 ---
 
@@ -189,15 +189,16 @@ Parallel work: Phase 1 (backend) and Phase 2 UI tasks 2.0 to 2.3 can run at the 
 - [x] 2.1 (G, P0) Single-page UI: input box, verdict badge, claim ledger with clickable citations
 - [x] 2.2 (G, P0) SSE live steps panel showing searches and exact queries
 - [x] 2.3 (G, P0) Split view: offer text with highlighted claims on left, evidence on right
-- [x] 2.4 (C+G, P0) Screenshot input: paste from clipboard (Ctrl+V) and drag-drop image; backend sends image to vision LLM for text extraction, then same pipeline
+- [x] 2.4 (C+G, P0) Screenshot input: clipboard paste (Ctrl+V), drag-drop, and live tab/window/screen capture; backend sends image to vision LLM for text extraction, then same pipeline
 - [x] 2.5 (C, P1) PDF upload (offer letters): pypdf text extract, fallback to vision for scanned PDFs
 - [x] 2.6 (C, P1) `.eml` upload (Gmail > Show original / Download message): parse headers, flag From vs Reply-To mismatch and failed SPF/DKIM, then run pipeline
-- [x] 2.7 (G, P1) Preset buttons for the 3 demo offers (home chips "Fake fee offer", "Fake WhatsApp job", "Real offer")
+- [x] 2.7 (G, P1) Preset buttons for the 3 demo offers (home chips "Fake fee offer", "Fake WhatsApp job", "No-fee offer")
 - [x] 2.9 (G, P0) Verdict states in UI: HIGH_RISK, UNVERIFIED, NO_RED_FLAGS_FOUND (labels and colors from the data contract; use images 09/10 if made)
 - [x] 2.10 (G, P1) Language toggle (Simple English / Hinglish), sent to /analyze as `language`
 - [x] 2.11 (G, P1) "Share result" = copy a short text version of the result to clipboard. "Copy" buttons on ask-them lines. (Real share link / PDF stays in the backlog)
 - [x] 2.12 (G, P1) Empty, loading and error states (API down, no text, file too large)
 - [x] 2.8 (C, P1) File limits (size/type), delete files after processing
+- [x] 2.13 (C, P1) Header Home/Report navigation with live progress and completed results in the Report view
 
 ### Phase 3: Gmail connect (P2, only after Phase 1 and 2 are demo-ready)
 - [ ] 3.1 (C) Google OAuth flow, scope gmail.readonly, Testing mode (unverified-app warning is OK for demo; confirm limits in Google docs)
@@ -208,8 +209,8 @@ Parallel work: Phase 1 (backend) and Phase 2 UI tasks 2.0 to 2.3 can run at the 
 
 ### Phase 4: Polish + submission (reserve the last 1 to 2 hours, do not spend it on features)
 - [ ] 4.1 (A) Freeze features. Only bug fixes after this
-- [ ] 4.2 (C) Cache demo responses for offline fallback
-- [ ] 4.3 (G) README: problem, how it works, architecture diagram, setup, limitations
+- [x] 4.2 (C) Cache demo responses for offline fallback
+- [x] 4.3 (G) README: problem, how it works, architecture diagram, setup, limitations
 - [ ] 4.4 (A) 2 minute demo script. Open with the realistic scam, show the company's own fraud notice contradicting the fee claim, then the UNVERIFIED honesty case
 - [ ] 4.5 (A) Record demo video, submit, double check links work
 - [ ] 4.6 (A+G, P0) Replace the fictional Northgate sample in presets with the real demo companies (only after 0.3 confirmed their pages exist)
@@ -276,6 +277,9 @@ Do NOT build: accounts/login, database history, multi-agent orchestration, socia
 - [ui-2.1-b 2026-11-21] Wired the frontend Check button to POST /analyze and receive live step/report SSE events.
 - [blocked 2026-11-21] Demo-case live run is blocked pending GEMINI_API_KEY and real demo companies.
 - [ui-backend-2.4 2026-11-21] Added screenshot paste, drag-drop, 10 MB/type checks and Gemini inline-image text extraction.
+- [ui-backend-2.4-capture 2026-11-21] Added one-frame browser screen capture with prompt/cancel handling, preview/status, immediate track cleanup, and a mocked JPEG-to-SSE backend test. Real browser permission selection remains a manual check.
+- [capture-llm 2026-11-21] Compressed captured frames to 1280px JPEG, added focus return and an inline attachment card, moved OCR to the SSE job, separated Gemini Vision/Analyze keys, and added optional Groq text-model fallback.
+- [file-offer-filter 2026-11-21] Restricted image, PDF and .eml extraction to offer content, added a clear no-offer SSE error instead of exposing page chrome, and renamed the capture action to “Share screen”.
 - [backend-ui-2.5 2026-11-21] Added 10 MB PDF upload, pypdf text extraction and Gemini fallback for short/scanned PDF text.
 - [backend-ui-2.6 2026-11-21] Added .eml body/header parsing with From vs Reply-To, SPF and DKIM mismatch flags.
 - [ui-backend-2.8 2026-11-21] Enforced 10 MB and accepted file types; uploads remain memory-only and are not stored.
@@ -289,6 +293,11 @@ Do NOT build: accounts/login, database history, multi-agent orchestration, socia
 - [models 2026-11-21] Gemini AQ key and analyze call passed. Extract call timed out; env.example now uses available 2.5 Flash Lite/Flash model names.
 - [models 2026-11-21] Extract model quick call returned 503 service unavailable; You.com and Gemini analyze calls both passed.
 - [retry-search 2026-11-21] Added Gemini 503/timeout retry and ANALYZE_MODEL fallback. Extraction succeeded via fallback; You.com returned five results.web items with URL, title and snippets.
+- [pipeline-ui 2026-11-21] Wired optional input hints, parallel You.com results.web searches, citation-safe evidence, deterministic eight-claim findings, live SSE queries and the single-page report UI. One live end-to-end report passed; a later retry hit Gemini HTTP 429. Mocked final route, citation whitelist and live-query checks passed.
+- [phase-4-demo 2026-11-21] Added exact-preset extraction fallbacks for Gemini 429/503/timeouts, browser caching for successful demo reports with an older-citation notice, offline fallback tests, and README setup/limitations. Presets now avoid calling a no-fee example a confirmed real offer.
+- [citations-ui 2026-11-21] Mapped You.com singular `snippet` fields, retained query categories across deduplicated results, linked relevant live sources to claim findings, labeled live vs cached reports, and switched the main fictional fee-impersonation demo to Infosys with a disclaimer. Real API and browser SSE checks returned 24 unique live sources; the Gemini fallback still rendered 8 claims with 10 clickable source links.
+- [ui-nav 2026-11-21] Added persistent Home/Report navigation, moved live progress and completed findings into the Report view, and kept Gmail OAuth listed as pending Phase 3 work.
+- [groq-model 2026-11-21] Switched the Groq default and setup docs to `openai/gpt-oss-20b`; verified tests and the configured model before pushing.
 
 ---
 
