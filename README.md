@@ -12,49 +12,51 @@ OfferCheck extracts offer claims, checks companies, recruiters, and domains agai
 
 ## What makes it different
 
-- **Evidence-bound citations:** the claim ledger links only to URLs returned by You.com. Missing evidence stays unverified.
+- **Zero-hallucination citation ledger:** links only to URLs returned by You.com; missing evidence stays unverified.
 - **Rules plus extraction:** deterministic fee and domain-mismatch rules work alongside LLM extraction for Hinglish and WhatsApp-style offers, advance-fee patterns, and free-email versus official-domain mismatches.
-- **Multiple inputs:** paste text, share a browser tab/window/screen, paste or drop an image, upload a PDF or `.eml`, or connect Gmail with read-only OAuth.
-- **Email signals:** `.eml` and imported Gmail messages can be checked for SPF, DKIM, and Reply-To mismatches.
-- **Provider resilience:** Gemini Vision handles image extraction; Groq and Gemini provide configurable text generation and fallback. SSE streams progress to the UI.
+- **Language support:** analyze offers and read reports in English or Hinglish.
 
 ## System architecture
 
 ```text
-Input [Text / Share Screen / Upload / Gmail]
+ Text / Preset / Share Screen / File / Gmail
                     |
                     v
-        Claim & Header Extractor
+     Offer + Email Header Extraction
                     |
           +---------+----------+
           |                    |
           v                    v
- Deterministic Risk Rules   Live You.com Search
-          |                    |
+ Deterministic Risk Rules   You.com Search
+          |                 (live sources)
           +---------+----------+
                     v
-       Citation & Verdict Ledger
+       Evidence & Verdict Ledger
+                    |
+          Report wording + SSE
                     |
                     v
-              SSE Web UI
+        Responsive Light-theme UI
 ```
 
 ## Features and guardrails
 
-- Rule-based risk verdicts; the LLM extracts claims and helps write the explanation, but never chooses the verdict.
-- Live evidence is separated from unsupported claims, with source links restricted to actual search results.
-- Offer-only extraction ignores unrelated page chrome in screenshots and documents; non-offer files get a clear rejection.
-- English and Hinglish reports, demo presets, cached demo fallbacks, and live SSE progress.
-- Gmail access is read-only. OAuth tokens are held in process memory, not written to files; sessions are lost when the server restarts.
+- **Text and presets:** paste an offer or use a fictional demo offer to see the analysis flow.
+- **Share screen and files:** share a tab, window, or screen; paste/drop an image; or upload PDF/`.eml`. Vision and file extraction focus on job, internship, and freelance offer content, rejecting unrelated material.
+- **Gmail:** read-only OAuth picker returns up to the 10 most recent matching offer emails. Imported text is cleaned and formatted; SPF, DKIM, and Reply-To checks use the fetched original headers.
+- **Providers and progress:** Gemini Vision extracts image text. Configured Groq and Gemini text providers provide fallback for temporary errors such as rate limits/timeouts; SSE streams analysis progress.
+- **Responsive UI:** a polished light theme presents the verdict, claim ledger, sources, and next-step actions on desktop and mobile.
+- The LLM extracts claims and helps write explanations; it never chooses the verdict. Unsupported claims stay unverified, and zero-footprint companies are never marked safe.
+- Gmail OAuth tokens are held in process memory, not written to files; sessions are lost when the server restarts.
 - OfferCheck is an evidence aid, not legal or financial advice. Verify important claims using contact details from the employer’s official website.
 
 ## Try the app
 
 1. Start OfferCheck using the setup below and open [http://127.0.0.1:8000](http://127.0.0.1:8000).
 2. Try a built-in preset, or paste a job, internship, or freelance offer and select **Check this offer**.
-3. Use **Share screen** to select a tab, window, or screen; alternatively paste/drop an image or upload a PDF.
-4. Upload an `.eml` file to inspect its message body and headers.
-5. To try Gmail, configure Google OAuth below, select **Connect Gmail**, approve read-only access, and choose a recent matching message.
+3. Use **Share screen** to select a tab, window, or screen; alternatively paste/drop an image or upload a PDF. Unrelated page text is not added as an offer.
+4. Upload an `.eml` file to inspect its cleaned offer text and sender-authentication headers.
+5. To try Gmail, configure Google OAuth below, select **Connect Gmail**, approve read-only access, and choose one of up to 10 recent matching messages.
 
 The included demo offers are fictional impersonation scenarios, not claims about the named companies. Cached demo evidence may be older than live results and is labeled. **NO RED FLAGS FOUND** does not establish that an offer is genuine.
 

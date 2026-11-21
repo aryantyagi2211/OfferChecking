@@ -15,6 +15,7 @@ token_*.json
 /AGENTS.md
 /CLAUDE.md
 /GEMINI.md
+/task.md
 /.github/copilot-instructions.md
 /docs/
 
