@@ -5,8 +5,12 @@ from pathlib import Path
 
 import httpx
 
-from models import ExtractedOffer
-from llm import PROMPTS, gemini_json
+if __package__:
+    from .models import ExtractedOffer
+    from .llm import PROMPTS, gemini_json
+else:
+    from models import ExtractedOffer
+    from llm import PROMPTS, gemini_json
 
 logger = logging.getLogger(__name__)
 DEMO_FALLBACKS = json.loads(

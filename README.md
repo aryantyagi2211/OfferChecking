@@ -89,9 +89,7 @@ git clone https://github.com/aryantyagi2211/OfferChecking.git
 Set-Location OfferChecking
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
-Set-Location backend
 python -m pip install -r requirements.txt
-Set-Location ..
 Copy-Item .env.example .env
 ```
 
@@ -115,11 +113,18 @@ Add credentials to the local `.env` file; never commit it. **Only `YOU_API_KEY` 
 | `GOOGLE_REDIRECT_URI` | OAuth callback URI; default is `http://127.0.0.1:8000/auth/google/callback`. |
 
 For Gmail, enable the Gmail API in Google Cloud, configure the OAuth consent screen, and add your account as a test user. Create a Web application OAuth client and register the redirect URI above. The app requests only `gmail.readonly`.
+Google OAuth credentials can also be supplied as a `client_secret.json` in `backend/`, the repository root, or `/etc/secrets/`.
 
 Run the app from the repository root:
 
 ```powershell
 python -m uvicorn app:app --app-dir backend --reload
+```
+
+For Render, use `pip install -r requirements.txt` as the build command and:
+
+```text
+uvicorn backend.app:app --host 0.0.0.0 --port $PORT --workers 1
 ```
 
 ### API overview

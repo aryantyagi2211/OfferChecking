@@ -17,22 +17,40 @@ import httpx
 from pydantic import BaseModel
 from pypdf import PdfReader
 
-from evidence import process_evidence
-from email_headers import email_header_flags
-from extractor import extract_offer
-from gmail_oauth import (
-    gmail_session_id_from_request,
-    load_gmail_offer_text,
-    router as gmail_router,
-)
-from investigator import investigate
-from llm import (
-    extract_offer_text_from_document,
-    gemini_extract_image,
-    validate_offer_text,
-)
-from report import compose_report
-from rule_engine import build_findings
+if __package__:
+    from .evidence import process_evidence
+    from .email_headers import email_header_flags
+    from .extractor import extract_offer
+    from .gmail_oauth import (
+        gmail_session_id_from_request,
+        load_gmail_offer_text,
+        router as gmail_router,
+    )
+    from .investigator import investigate
+    from .llm import (
+        extract_offer_text_from_document,
+        gemini_extract_image,
+        validate_offer_text,
+    )
+    from .report import compose_report
+    from .rule_engine import build_findings
+else:
+    from evidence import process_evidence
+    from email_headers import email_header_flags
+    from extractor import extract_offer
+    from gmail_oauth import (
+        gmail_session_id_from_request,
+        load_gmail_offer_text,
+        router as gmail_router,
+    )
+    from investigator import investigate
+    from llm import (
+        extract_offer_text_from_document,
+        gemini_extract_image,
+        validate_offer_text,
+    )
+    from report import compose_report
+    from rule_engine import build_findings
 
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent

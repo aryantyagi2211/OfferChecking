@@ -3,6 +3,7 @@ import base64
 import hashlib
 import hmac
 import html
+import json
 import os
 import re
 import secrets
@@ -11,6 +12,7 @@ import unicodedata
 from dataclasses import dataclass
 from email.header import decode_header, make_header
 from html.parser import HTMLParser
+from pathlib import Path
 from typing import Any
 from urllib.parse import quote, urlencode, urlsplit, urlunsplit
 
@@ -18,7 +20,10 @@ import httpx
 from fastapi import APIRouter, HTTPException, Request, Response
 from fastapi.responses import RedirectResponse
 
-from email_headers import email_header_flags
+if __package__:
+    from .email_headers import email_header_flags
+else:
+    from email_headers import email_header_flags
 
 
 router = APIRouter()
@@ -28,6 +33,11 @@ GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token"
 GMAIL_API_ROOT = "https://gmail.googleapis.com/gmail/v1/users/me"
 GMAIL_SCOPE = "https://www.googleapis.com/auth/gmail.readonly"
 DEFAULT_REDIRECT_URI = "http://127.0.0.1:8000/auth/google/callback"
+GOOGLE_CLIENT_SECRET_FILES = (
+    Path(__file__).resolve().parent / "client_secret.json",
+    Path(__file__).resolve().parent.parent / "client_secret.json",
+    Path("/etc/secrets/client_secret.json"),
+)
 SESSION_COOKIE = "offercheck_gmail_session"
 STATE_COOKIE = "offercheck_gmail_oauth_state"
 STATE_TTL_SECONDS = 600
@@ -96,7 +106,43 @@ def _session_secret() -> bytes | None:
 def _oauth_config() -> tuple[str, str, str]:
     client_id = os.getenv("GOOGLE_CLIENT_ID", "").strip()
     client_secret = os.getenv("GOOGLE_CLIENT_SECRET", "").strip()
-    redirect_uri = os.getenv("GOOGLE_REDIRECT_URI", "").strip() or DEFAULT_REDIRECT_URI
+    redirect_uri = os.getenv("GOOGLE_REDIRECT_URI", "").strip()
+
+    file_client_id = ""
+    file_client_secret = ""
+    file_redirect_uri = ""
+    if not client_id or not client_secret:
+        for path in GOOGLE_CLIENT_SECRET_FILES:
+            if not path.is_file():
+                continue
+            try:
+                document = json.loads(path.read_text(encoding="utf-8"))
+            except (OSError, json.JSONDecodeError) as error:
+                raise RuntimeError("Could not read Google OAuth client_secret.json.") from error
+            if not isinstance(document, dict):
+                raise RuntimeError("Google OAuth client_secret.json must contain a JSON object.")
+            credentials = document.get("web") or document.get("installed") or document
+            if not isinstance(credentials, dict):
+                raise RuntimeError("Google OAuth client_secret.json has an invalid credentials section.")
+            file_client_id = str(credentials.get("client_id") or "").strip()
+            file_client_secret = str(credentials.get("client_secret") or "").strip()
+            redirect_uris = credentials.get("redirect_uris") or []
+            if isinstance(redirect_uris, list):
+                file_redirect_uri = next(
+                    (
+                        uri
+                        for uri in redirect_uris
+                        if isinstance(uri, str)
+                        and urlsplit(uri).path.rstrip("/") == "/auth/google/callback"
+                    ),
+                    "",
+                )
+            if file_client_id and file_client_secret:
+                break
+
+    client_id = client_id or file_client_id
+    client_secret = client_secret or file_client_secret
+    redirect_uri = redirect_uri or file_redirect_uri or DEFAULT_REDIRECT_URI
     return client_id, client_secret, redirect_uri
 
 

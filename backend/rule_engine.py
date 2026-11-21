@@ -1,7 +1,10 @@
 import re
 from urllib.parse import urlparse
 
-from models import Evidence, ExtractedOffer
+if __package__:
+    from .models import Evidence, ExtractedOffer
+else:
+    from models import Evidence, ExtractedOffer
 
 
 FREE_EMAIL_DOMAINS = {"gmail.com", "yahoo.com", "outlook.com", "hotmail.com"}

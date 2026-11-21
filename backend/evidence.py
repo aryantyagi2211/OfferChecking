@@ -1,7 +1,10 @@
 from datetime import datetime, timezone
 from urllib.parse import urlparse
 
-from models import Evidence, ExtractedOffer
+if __package__:
+    from .models import Evidence, ExtractedOffer
+else:
+    from models import Evidence, ExtractedOffer
 
 
 def source_type(url: str, company_domain: str | None) -> str:

@@ -4,9 +4,14 @@ import os
 
 import httpx
 
-from evidence import Evidence
-from llm import PROMPTS, gemini_json
-from models import ExtractedOffer
+if __package__:
+    from .evidence import Evidence
+    from .llm import PROMPTS, gemini_json
+    from .models import ExtractedOffer
+else:
+    from evidence import Evidence
+    from llm import PROMPTS, gemini_json
+    from models import ExtractedOffer
 
 
 BANNED_WORDS = ("safe", "100%", "guaranteed", "definitely a scam")

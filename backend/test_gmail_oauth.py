@@ -1,5 +1,6 @@
 import asyncio
 import base64
+import json
 import os
 import tempfile
 from pathlib import Path
@@ -80,6 +81,55 @@ def check_gmail_text_cleanup():
         "From: Recruiter <jobs@example.com>\n\n"
         "Role: Data Intern\nStipend: Rs 12,000"
     )
+
+
+def check_google_oauth_config_file_lookup():
+    with tempfile.TemporaryDirectory() as directory:
+        root = Path(directory)
+        paths = (
+            root / "backend" / "client_secret.json",
+            root / "client_secret.json",
+            root / "etc" / "secrets" / "client_secret.json",
+        )
+        for path in paths:
+            path.parent.mkdir(parents=True, exist_ok=True)
+
+        with (
+            patch.object(gmail_oauth, "GOOGLE_CLIENT_SECRET_FILES", paths),
+            patch.dict(os.environ, {
+                "GOOGLE_CLIENT_ID": "",
+                "GOOGLE_CLIENT_SECRET": "",
+                "GOOGLE_REDIRECT_URI": "",
+            }),
+        ):
+            for path in paths:
+                for candidate in paths:
+                    candidate.unlink(missing_ok=True)
+                path.write_text(json.dumps({
+                    "web": {
+                        "client_id": "file-client-id",
+                        "client_secret": "file-client-secret",
+                        "redirect_uris": [
+                            "https://offercheck.example/auth/google/callback",
+                        ],
+                    },
+                }), encoding="utf-8")
+                assert gmail_oauth._oauth_config() == (
+                    "file-client-id",
+                    "file-client-secret",
+                    "https://offercheck.example/auth/google/callback",
+                )
+
+            with patch.dict(os.environ, {
+                "GOOGLE_CLIENT_ID": "environment-client-id",
+                "GOOGLE_CLIENT_SECRET": "environment-client-secret",
+                "GOOGLE_REDIRECT_URI": "https://override.example/auth/google/callback",
+            }):
+                assert gmail_oauth._oauth_config() == (
+                    "environment-client-id",
+                    "environment-client-secret",
+                    "https://override.example/auth/google/callback",
+                )
 
 
 class FakeGoogleClient:
@@ -204,6 +254,7 @@ class FakeGoogleClient:
 
 async def run_gmail_oauth_checks():
     check_session_secret_setup()
+    check_google_oauth_config_file_lookup()
     test_config = {
         "SESSION_SECRET": "test-session-secret",
         "GOOGLE_CLIENT_ID": "test-client-id",
