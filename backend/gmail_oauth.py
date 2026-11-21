@@ -2,15 +2,17 @@ import asyncio
 import base64
 import hashlib
 import hmac
+import html
 import os
 import re
 import secrets
 import time
+import unicodedata
 from dataclasses import dataclass
 from email.header import decode_header, make_header
 from html.parser import HTMLParser
 from typing import Any
-from urllib.parse import quote, urlencode
+from urllib.parse import quote, urlencode, urlsplit, urlunsplit
 
 import httpx
 from fastapi import APIRouter, HTTPException, Request, Response
@@ -31,8 +33,29 @@ STATE_COOKIE = "offercheck_gmail_oauth_state"
 STATE_TTL_SECONDS = 600
 SESSION_TTL_SECONDS = 30 * 24 * 60 * 60
 MAX_EMAIL_BODY_CHARS = 20000
+MAX_EMAIL_URL_CHARS = 180
 GMAIL_PAGE_SIZE = 25
 GMAIL_MAX_RESULTS = 10
+EMAIL_HTML_MARKUP = re.compile(
+    r"</?\s*(?:html|head|body|style|script|noscript|template|blockquote|"
+    r"address|article|section|nav|main|header|footer|div|span|p|br|"
+    r"ul|ol|li|table|thead|tbody|tfoot|tr|td|th|caption|a|img|"
+    r"form|input|label|button|iframe|title|meta|link|hr|pre|"
+    r"strong|em|b|i|font|center|small|sup|sub|h[1-6])\b",
+    re.IGNORECASE,
+)
+EMAIL_URL = re.compile(r"https?://[^\s<>]+", re.IGNORECASE)
+EMAIL_QUOTED_REPLY = re.compile(
+    r"^\s*(?:On\s+.+\bwrote:\s*$|[-_ ]*Original Message[-_ ]*|Begin forwarded message:)",
+    re.IGNORECASE,
+)
+EMAIL_FOOTER = re.compile(
+    r"\b(?:unsubscribe|manage\s+(?:your\s+)?(?:email\s+)?preferences|"
+    r"update\s+(?:your\s+)?preferences|view\s+(?:this\s+)?(?:email\s+)?in\s+(?:your\s+)?browser|"
+    r"you are receiving this email because|don't want to receive|do not want to receive|"
+    r"email preferences|privacy policy|all rights reserved)\b",
+    re.IGNORECASE,
+)
 GMAIL_SEARCH_QUERY = (
     'newer_than:30d {offer internship job hiring hired interview selected stipend '
     'freelance contract onboarding "appointment letter" recruiter} '
@@ -393,22 +416,130 @@ def _find_part_data(payload: dict[str, Any], mime_type: str) -> str | None:
 
 
 class _HTMLToText(HTMLParser):
-    BLOCK_TAGS = {"br", "div", "li", "p", "tr"}
+    BLOCK_TAGS = {
+        "address", "article", "br", "div", "h1", "h2", "h3", "h4", "h5", "h6",
+        "li", "p", "section", "tr",
+    }
+    IGNORED_TAGS = {"blockquote", "head", "noscript", "script", "style", "template"}
+    VOID_TAGS = {
+        "area", "base", "br", "col", "embed", "hr", "img", "input", "link",
+        "meta", "param", "source", "track", "wbr",
+    }
+    HIDDEN_STYLE = re.compile(
+        r"(?:display\s*:\s*none|visibility\s*:\s*hidden|opacity\s*:\s*0(?:\D|$))",
+        re.IGNORECASE,
+    )
 
     def __init__(self):
         super().__init__(convert_charrefs=True)
         self.chunks: list[str] = []
+        self.ignored_tags: list[str] = []
 
     def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        if self.ignored_tags:
+            if tag not in self.VOID_TAGS:
+                self.ignored_tags.append(tag)
+            return
+        attributes = dict(attrs)
+        hidden = (
+            tag in self.IGNORED_TAGS
+            or "hidden" in attributes
+            or (attributes.get("aria-hidden") or "").lower() == "true"
+            or bool(self.HIDDEN_STYLE.search(attributes.get("style") or ""))
+        )
+        if hidden:
+            if tag not in self.VOID_TAGS:
+                self.ignored_tags.append(tag)
+            return
         if tag in self.BLOCK_TAGS:
             self.chunks.append("\n")
+        if tag == "li":
+            self.chunks.append("• ")
 
     def handle_endtag(self, tag: str) -> None:
+        if self.ignored_tags:
+            for index in range(len(self.ignored_tags) - 1, -1, -1):
+                if self.ignored_tags[index] == tag:
+                    del self.ignored_tags[index:]
+                    break
+            return
         if tag in self.BLOCK_TAGS:
             self.chunks.append("\n")
 
     def handle_data(self, data: str) -> None:
-        self.chunks.append(data)
+        if not self.ignored_tags:
+            self.chunks.append(data)
+
+
+def _strip_email_url(match: re.Match[str]) -> str:
+    value = match.group(0)
+    suffix = ""
+    while value and value[-1] in ".,;:!?)]}":
+        suffix = value[-1] + suffix
+        value = value[:-1]
+    if len(value) > MAX_EMAIL_URL_CHARS:
+        return suffix
+    try:
+        parsed = urlsplit(value)
+        value = urlunsplit((parsed.scheme, parsed.netloc, parsed.path, "", ""))
+    except ValueError:
+        value = value.split("?", 1)[0].split("#", 1)[0]
+    return value + suffix
+
+
+def _clean_email_body(value: str) -> str:
+    if not value:
+        return ""
+    if EMAIL_HTML_MARKUP.search(value):
+        parser = _HTMLToText()
+        parser.feed(value)
+        parser.close()
+        value = "".join(parser.chunks)
+    else:
+        value = html.unescape(value)
+
+    printable = []
+    for character in value:
+        if character in "\r\n\t":
+            printable.append(character)
+        elif character in "\u2028\u2029":
+            printable.append("\n")
+        elif unicodedata.category(character).startswith("C"):
+            continue
+        elif character == "\u00a0":
+            printable.append(" ")
+        else:
+            printable.append(character)
+
+    value = EMAIL_URL.sub(_strip_email_url, "".join(printable))
+    lines = []
+    for line in value.replace("\r\n", "\n").replace("\r", "\n").split("\n"):
+        if EMAIL_QUOTED_REPLY.match(line) or EMAIL_FOOTER.search(line):
+            break
+        if re.match(r"^\s*>", line):
+            break
+        line = re.sub(r"[ \t\f\v]+", " ", line).strip()
+        if not line:
+            if lines and lines[-1]:
+                lines.append("")
+        else:
+            lines.append(line)
+    while lines and not lines[-1]:
+        lines.pop()
+    return "\n".join(lines)
+
+
+def _format_email_text(subject: str, sender: str, body: str) -> str:
+    lines = []
+    if subject:
+        lines.append(f"Subject: {subject}")
+    if sender:
+        lines.append(f"From: {sender}")
+    if body:
+        if lines:
+            lines.append("")
+        lines.extend(body.splitlines())
+    return "\n".join(lines).strip()
 
 
 def _plain_body(payload: dict[str, Any]) -> str:
@@ -417,10 +548,8 @@ def _plain_body(payload: dict[str, Any]) -> str:
         html_text = _find_part_data(payload, "text/html")
         if html_text is None:
             return ""
-        parser = _HTMLToText()
-        parser.feed(html_text)
-        plain_text = "".join(parser.chunks)
-    normalized = re.sub(r"\n{3,}", "\n\n", plain_text).strip()
+        plain_text = html_text
+    normalized = _clean_email_body(plain_text)
     if len(normalized) > MAX_EMAIL_BODY_CHARS:
         return normalized[:MAX_EMAIL_BODY_CHARS] + "\n\n[Email body truncated]"
     return normalized
@@ -448,13 +577,18 @@ def _header_map(headers: list[dict[str, Any]]) -> dict[str, str]:
 def _email_message(message: dict[str, Any]) -> dict[str, str]:
     payload = message.get("payload", {})
     headers = payload.get("headers", [])
+    subject = _header_value(headers, "Subject") or "(no subject)"
+    sender = _header_value(headers, "From")
+    body = _plain_body(payload)
+    snippet = _clean_email_body(str(message.get("snippet", "")))
     return {
         "id": str(message.get("id", "")),
-        "sender": _header_value(headers, "From"),
-        "subject": _header_value(headers, "Subject") or "(no subject)",
+        "sender": sender,
+        "subject": subject,
         "date": _header_value(headers, "Date"),
-        "snippet": str(message.get("snippet", "")),
-        "body": _plain_body(payload),
+        "snippet": snippet,
+        "body": body,
+        "offer_text": _format_email_text(subject, sender, body or snippet),
     }
 
 
@@ -484,13 +618,7 @@ async def load_gmail_offer_text(session_id: str, message_id: str) -> tuple[str, 
     payload = message.get("payload", {})
     headers = _header_map(payload.get("headers", []))
     parsed = _email_message(message)
-    text = (
-        f"Subject: {parsed['subject']}\n"
-        f"From: {parsed['sender']}\n"
-        f"Date: {parsed['date']}\n\n"
-        f"{parsed['body'] or parsed['snippet']}"
-    ).strip()
-    return text, email_header_flags(headers)
+    return parsed["offer_text"], email_header_flags(headers)
 
 
 @router.get("/api/gmail/messages")

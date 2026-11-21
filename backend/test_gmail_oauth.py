@@ -30,6 +30,58 @@ def _encoded_body(text: str) -> str:
     return base64.urlsafe_b64encode(text.encode("utf-8")).decode("ascii").rstrip("=")
 
 
+def check_gmail_text_cleanup():
+    html_body = f"""<html><head><style>.hidden {{ display: none; }}</style>
+    <script>tracker()</script></head><body>
+    <p>Hello&#8203; Aryan,</p>
+    <p>Role: Data Analyst</p>
+    <ul><li>Company: Northgate Labs</li><li>Stipend: Rs 18,000/month</li>
+    <li>Terms: no application fee</li></ul>
+    <p>Recruiter: Asha Singh, &lt;jobs@example.com&gt;</p>
+    <p>Apply: https://jobs.example.com/apply?utm_source=newsletter&amp;token=abc</p>
+    <p>Tracking: https://tracker.example.com/{'x' * 200}</p>
+    <img width="1" height="1" src="https://tracker.example.com/pixel">
+    </body></html>"""
+    cleaned = gmail_oauth._clean_email_body(html_body + "\u0000")
+    assert "Role: Data Analyst" in cleaned
+    assert "• Company: Northgate Labs" in cleaned
+    assert "Stipend: Rs 18,000/month" in cleaned
+    assert "Recruiter: Asha Singh, <jobs@example.com>" in cleaned
+    assert "https://jobs.example.com/apply" in cleaned
+    assert "utm_source" not in cleaned and "?token=" not in cleaned
+    assert "tracker.example.com" not in cleaned
+    assert ".hidden" not in cleaned and "tracker()" not in cleaned
+    assert "<p>" not in cleaned and "<img" not in cleaned
+    assert "\u200b" not in cleaned and "\u0000" not in cleaned
+
+    quoted = gmail_oauth._clean_email_body(
+        "Role: Analyst\nOn Fri, Nov 20, 2026, Recruiter wrote:\n> Previous message"
+    )
+    assert quoted == "Role: Analyst"
+    assert gmail_oauth._clean_email_body("Role: Analyst\n> Previous message") == "Role: Analyst"
+    footer = gmail_oauth._clean_email_body(
+        "Role: Analyst\nRecruiter: jobs@example.com\n\nUnsubscribe from these updates\nboilerplate"
+    )
+    assert footer == "Role: Analyst\nRecruiter: jobs@example.com"
+
+    message = gmail_oauth._email_message({
+        "id": "clean-message",
+        "payload": {
+            "headers": [
+                {"name": "Subject", "value": "Internship offer"},
+                {"name": "From", "value": "Recruiter <jobs@example.com>"},
+            ],
+            "mimeType": "text/plain",
+            "body": {"data": _encoded_body("Role: Data Intern\nStipend: Rs 12,000")},
+        },
+    })
+    assert message["offer_text"] == (
+        "Subject: Internship offer\n"
+        "From: Recruiter <jobs@example.com>\n\n"
+        "Role: Data Intern\nStipend: Rs 12,000"
+    )
+
+
 class FakeGoogleClient:
     candidate_mode = "paged"
 
@@ -200,6 +252,11 @@ async def run_gmail_oauth_checks():
                 assert message["date"] == "Sat, 21 Nov 2026 10:00:00 +0000"
                 assert message["snippet"] == "An internship offer"
                 assert message["body"] == "Role: Data Intern\nStipend: Rs 12,000"
+                assert message["offer_text"] == (
+                    "Subject: Internship offer\n"
+                    "From: Recruiter <jobs@example.org>\n\n"
+                    "Role: Data Intern\nStipend: Rs 12,000"
+                )
 
                 FakeGoogleClient.candidate_mode = "few"
                 few_messages = await client.get("/api/gmail/messages")
@@ -219,6 +276,11 @@ async def run_gmail_oauth_checks():
                     "message-1",
                 )
                 assert "Stipend: Rs 12,000" in offer_text
+                assert offer_text.startswith(
+                    "Subject: Internship offer\n"
+                    "From: Recruiter <jobs@example.org>\n\n"
+                )
+                assert "Date:" not in offer_text
                 assert header_flags == ["Reply-To does not match From", "DKIM failed"]
 
                 captured_flags = []
@@ -278,8 +340,9 @@ async def run_gmail_oauth_checks():
                     start = await client.get("/auth/google/start")
                     assert start.headers["location"] == "/?gmail_error=not_configured"
 
-    print("gmail_oauth: session secret, signed state, OAuth, email import, and disconnect passed")
+    print("gmail_oauth: session secret, OAuth, email cleanup/import, header checks, and disconnect passed")
 
 
 if __name__ == "__main__":
+    check_gmail_text_cleanup()
     asyncio.run(run_gmail_oauth_checks())

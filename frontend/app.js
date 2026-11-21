@@ -790,13 +790,15 @@ async function disconnectGmail() {
 }
 
 function importGmailMessage(message) {
-  const headers = [
+  const formattedHeaders = [
     message.subject ? `Subject: ${message.subject}` : "",
     message.sender ? `From: ${message.sender}` : "",
-    message.date ? `Date: ${message.date}` : "",
   ].filter(Boolean);
   const body = message.body || message.snippet || "";
-  offerText.value = `${headers.join("\n")}${headers.length ? "\n\n" : ""}${body}`.trim();
+  offerText.value = (
+    message.offer_text
+    || `${formattedHeaders.join("\n")}${formattedHeaders.length && body ? "\n\n" : ""}${body}`
+  ).trim();
   currentGmailMessageId = message.id;
   activeDemoPreset = null;
   clearFileAttachment();
