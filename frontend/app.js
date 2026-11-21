@@ -653,12 +653,28 @@ function setGmailStatus(message, kind = "info") {
   status.className = `gmail-status ${kind}`;
 }
 
+function setGmailButtonLabel(connected) {
+  document.getElementById("gmailButtonLabel").textContent = connected ? "Gmail" : "Connect Gmail";
+}
+
 async function responseError(response) {
   try {
     const body = await response.json();
     return typeof body.detail === "string" ? body.detail : "Gmail could not complete that request.";
   } catch {
     return "Gmail could not complete that request.";
+  }
+}
+
+async function refreshGmailButtonLabel() {
+  try {
+    const response = await fetch("/api/gmail/status");
+    if (!response.ok) throw new Error(await responseError(response));
+    const status = await response.json();
+    setGmailButtonLabel(status.connected === true);
+  } catch (error) {
+    setGmailButtonLabel(false);
+    console.warn(error.message || "Could not check the Gmail connection.");
   }
 }
 
@@ -673,6 +689,7 @@ async function refreshGmailStatus() {
     const response = await fetch("/api/gmail/status");
     if (!response.ok) throw new Error(await responseError(response));
     const status = await response.json();
+    setGmailButtonLabel(status.connected === true);
     connectButton.classList.toggle("hidden", status.connected);
     connectButton.disabled = !status.configured;
     refreshButton.classList.toggle("hidden", !status.connected);
@@ -696,6 +713,7 @@ async function refreshGmailStatus() {
     }
     await loadGmailMessages();
   } catch (error) {
+    setGmailButtonLabel(false);
     connectButton.classList.remove("hidden");
     connectButton.disabled = false;
     refreshButton.classList.add("hidden");
@@ -703,6 +721,8 @@ async function refreshGmailStatus() {
     setGmailStatus(error.message || "Could not check the Gmail connection.", "error");
   }
 }
+
+refreshGmailButtonLabel();
 
 function renderGmailMessages(messages) {
   const messageList = document.getElementById("gmailMessageList");
