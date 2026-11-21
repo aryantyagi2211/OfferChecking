@@ -6,6 +6,8 @@ const resultView = document.getElementById("resultView");
 const homeTab = document.getElementById("homeTab");
 const reportTab = document.getElementById("reportTab");
 const modalBackdrop = document.getElementById("modalBackdrop");
+const howModalBackdrop = document.getElementById("howModalBackdrop");
+const howButton = document.getElementById("howButton");
 const sourcesDrawer = document.getElementById("sourcesDrawer");
 const overlay = document.getElementById("overlay");
 let selectedLanguage = "simple_english";
@@ -635,6 +637,19 @@ function openModal(tab = "upload") {
 }
 function closeModal() { modalBackdrop.classList.add("hidden"); }
 
+function openHowModal() {
+  howModalBackdrop.classList.remove("hidden");
+  howButton.setAttribute("aria-expanded", "true");
+  document.getElementById("closeHowModal").focus();
+}
+
+function closeHowModal() {
+  if (howModalBackdrop.classList.contains("hidden")) return;
+  howModalBackdrop.classList.add("hidden");
+  howButton.setAttribute("aria-expanded", "false");
+  howButton.focus();
+}
+
 function selectTab(tabName) {
   document.querySelectorAll(".tab").forEach(tab => tab.classList.toggle("active", tab.dataset.tab === tabName));
   document.getElementById("uploadTab").classList.toggle("hidden", tabName !== "upload");
@@ -651,6 +666,14 @@ document.getElementById("gmailRefreshAction").addEventListener("click", loadGmai
 document.getElementById("gmailDisconnectAction").addEventListener("click", disconnectGmail);
 modalBackdrop.addEventListener("click", event => {
   if (event.target === modalBackdrop) closeModal();
+});
+howButton.addEventListener("click", openHowModal);
+document.getElementById("closeHowModal").addEventListener("click", closeHowModal);
+howModalBackdrop.addEventListener("click", event => {
+  if (event.target === howModalBackdrop) closeHowModal();
+});
+document.addEventListener("keydown", event => {
+  if (event.key === "Escape") closeHowModal();
 });
 document.querySelectorAll(".tab").forEach(tab => tab.addEventListener("click", () => selectTab(tab.dataset.tab)));
 
@@ -823,7 +846,6 @@ document.getElementById("pasteScreenshot").addEventListener("click", captureScre
 document.getElementById("closeSources").addEventListener("click", closeSources);
 document.getElementById("viewSourcesButton").addEventListener("click", openSources);
 overlay.addEventListener("click", closeSources);
-document.getElementById("howButton").addEventListener("click", () => alert("OfferCheck compares offer claims with live public evidence."));
 function processFile(file) {
   if (!file) return;
   if (analysisRunning) {

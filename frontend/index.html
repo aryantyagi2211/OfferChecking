@@ -23,7 +23,7 @@
         <button class="page-tab" id="reportTab" type="button" aria-controls="reportView" aria-current="false" disabled>Report</button>
       </nav>
       <div class="header-actions">
-        <button class="text-button" id="howButton">
+        <button class="text-button" id="howButton" type="button" aria-haspopup="dialog" aria-controls="howModal" aria-expanded="false">
           <svg class="help-icon" aria-hidden="true" focusable="false" viewBox="0 0 20 20" fill="none">
             <circle cx="10" cy="10" r="7.2" stroke="currentColor" stroke-width="1.6"/>
             <path d="M8.2 7.7a1.9 1.9 0 1 1 3.2 1.4c-.9.8-1.4 1.1-1.4 2.2m0 2.1h.01" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
@@ -246,6 +246,33 @@
       <div id="sourceList"></div>
       <p class="drawer-note">Sources are linked as relevant context. Open each one to verify what it says.</p>
     </aside>
+
+    <div class="modal-backdrop hidden" id="howModalBackdrop">
+      <section class="how-modal" id="howModal" role="dialog" aria-modal="true" aria-labelledby="howModalTitle" tabindex="-1">
+        <div class="modal-header">
+          <h2 id="howModalTitle">How OfferCheck Works</h2>
+          <button class="icon-button" id="closeHowModal" type="button" aria-label="Close">×</button>
+        </div>
+        <ul class="how-works-list">
+          <li>
+            <strong>Add an offer:</strong>
+            <span>Paste an email or WhatsApp message, upload a PDF, screenshot, or .eml, share your screen, or import from Gmail.</span>
+          </li>
+          <li>
+            <strong>Extract &amp; inspect claims:</strong>
+            <span>OfferCheck isolates company, recruiter, domain, stipend, and fee claims. Gmail imports retain original headers for SPF, DKIM, and Reply-To checks.</span>
+          </li>
+          <li>
+            <strong>Cross-check with live You.com search:</strong>
+            <span>Company, domain, and offer claims are checked against live results; citations link only to URLs You.com returned.</span>
+          </li>
+          <li>
+            <strong>Get a clear verdict &amp; action plan:</strong>
+            <span>See HIGH RISK, COULD NOT VERIFY, or NO RED FLAGS FOUND (not a guarantee), plus one-click questions to ask the recruiter.</span>
+          </li>
+        </ul>
+      </section>
+    </div>
 
     <div class="modal-backdrop hidden" id="modalBackdrop">
       <section class="upload-modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
