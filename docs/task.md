@@ -282,6 +282,8 @@ Do NOT build: accounts/login, database history, multi-agent orchestration, socia
 - [ui-2.10 2026-11-21] Added Simple English / Hinglish toggle and sent the selected language to /analyze.
 - [security 2026-11-21] Replaced accidental key values in .env.example with placeholders; no real .env file was created.
 - [keys 2026-11-21] Aryan will create his own .env; the app loads it with python-dotenv, and agents will not read or print key values.
+- [blocked 2026-11-21] You.com key test passed. Gemini key/model inventory returned 400; waiting for a valid Gemini Developer API key and available model names.
+- [blocked 2026-11-21] Gemini test now confirms "API key not valid"; You.com search passed.
 
 ---
 
