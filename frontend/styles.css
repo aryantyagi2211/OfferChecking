@@ -48,7 +48,7 @@ button:focus-visible, a:focus-visible, textarea:focus-visible, input:focus-visib
   padding: 0 28px;
 }
 
-.brand-group, .header-actions, .language-toggle {
+.brand-group, .header-actions {
   display: flex;
   align-items: center;
 }
@@ -108,22 +108,6 @@ button:focus-visible, a:focus-visible, textarea:focus-visible, input:focus-visib
 .page-tab:not(:disabled):hover:not(.active) { color: var(--ink); background: #eef2f8; }
 .header-actions { gap: 16px; }
 .topbar > .header-actions { grid-column: 3; justify-self: end; }
-.language-toggle {
-  gap: 2px;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  background: var(--surface);
-  padding: 3px;
-}
-.language-toggle button {
-  border: 0;
-  border-radius: 5px;
-  background: transparent;
-  color: var(--muted);
-  padding: 5px 9px;
-  font-size: 12px;
-}
-.language-toggle button.active { background: #eff6ff; color: var(--accent); font-weight: 650; }
 .text-button {
   display: inline-flex;
   align-items: center;
@@ -728,7 +712,6 @@ textarea:focus { background: #fff; outline: 0; }
   .brand-group { gap: 7px; }
   .live-pill { display: none; }
   .header-actions { gap: 7px; }
-  .language-toggle button { padding: 5px 6px; font-size: 10px; }
   .text-button { font-size: 11px; }
   main { padding-right: 14px; padding-left: 14px; }
   .hero h1 br { display: none; }
@@ -747,7 +730,6 @@ textarea:focus { background: #fff; outline: 0; }
   .brand-mark { width: 25px; height: 29px; }
   .brand-name { font-size: 15px; }
   .header-actions { gap: 5px; }
-  .language-toggle button { padding: 4px; font-size: 9px; }
   .text-button { font-size: 0; gap: 0; }
   .help-icon { width: 20px; height: 20px; }
 }

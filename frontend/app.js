@@ -292,6 +292,8 @@ async function captureDisplayFrame(stream) {
     const context = canvas.getContext("2d");
     if (!context) throw new Error("Could not prepare the screenshot.");
     context.drawImage(video, 0, 0, canvas.width, canvas.height);
+    stopCaptureTracks(stream);
+    window.focus();
 
     const blob = await new Promise((resolve, reject) => {
       canvas.toBlob(
@@ -300,8 +302,6 @@ async function captureDisplayFrame(stream) {
         0.8
       );
     });
-    stopCaptureTracks(stream);
-    window.focus();
     return new File([blob], "shared-tab.jpg", { type: "image/jpeg" });
   } finally {
     video.pause();
@@ -321,13 +321,17 @@ async function captureScreen() {
     showCaptureStatus("Choose a tab, window, or screen to capture…");
     stream = await mediaDevices.getDisplayMedia({ video: true });
     const file = await captureDisplayFrame(stream);
-    stopCaptureTracks(stream);
     if (file.size > 10 * 1024 * 1024) {
       showCaptureStatus("Captured screenshot exceeds the 10 MB limit. Nothing was uploaded.", "error");
       return;
     }
-    showCaptureStatus("Screenshot captured. Sending it for analysis…", "success");
     processFile(file);
+    if (attachedFile === file) {
+      showCaptureStatus(
+        "Screenshot captured — if your browser switched tabs, return to OfferCheck to review.",
+        "success"
+      );
+    }
   } catch (error) {
     stopCaptureTracks(stream);
     if (error.name === "NotSupportedError") {
@@ -817,15 +821,6 @@ document.getElementById("closeSources").addEventListener("click", closeSources);
 document.getElementById("viewSourcesButton").addEventListener("click", openSources);
 overlay.addEventListener("click", closeSources);
 document.getElementById("howButton").addEventListener("click", () => alert("OfferCheck compares offer claims with live public evidence."));
-document.querySelectorAll("[data-language]").forEach(button => {
-  button.addEventListener("click", () => {
-    selectedLanguage = button.dataset.language;
-    document.querySelectorAll("[data-language]").forEach(item => {
-      item.classList.toggle("active", item === button);
-    });
-  });
-});
-
 function processFile(file) {
   if (!file) return;
   if (analysisRunning) {
