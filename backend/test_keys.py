@@ -11,13 +11,13 @@ load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 
 async def main() -> None:
     you_key = os.getenv("YOU_API_KEY", "")
-    llm_key = os.getenv("LLM_API_KEY", "")
+    gemini_key = os.getenv("GEMINI_API_KEY", "")
     extract_model = os.getenv("EXTRACT_MODEL", "")
     analyze_model = os.getenv("ANALYZE_MODEL", "")
 
     print("config", {
         "you": bool(you_key),
-        "llm": bool(llm_key),
+        "gemini": bool(gemini_key),
         "extract_model": bool(extract_model),
         "analyze_model": bool(analyze_model),
     })
@@ -34,11 +34,11 @@ async def main() -> None:
                 result_count = len(response.json().get("results", []))
             print("you_status", response.status_code, "results", result_count)
 
-    if llm_key and analyze_model:
+    if gemini_key and analyze_model:
         async with httpx.AsyncClient(timeout=30) as client:
             response = await client.post(
                 f"https://generativelanguage.googleapis.com/v1beta/models/{analyze_model}:generateContent",
-                params={"key": llm_key},
+                headers={"x-goog-api-key": gemini_key, "Content-Type": "application/json"},
                 json={
                     "contents": [{"role": "user", "parts": [{"text": "Reply with exactly OK"}]}],
                     "generationConfig": {"temperature": 0, "maxOutputTokens": 8},
@@ -55,7 +55,8 @@ async def main() -> None:
         async with httpx.AsyncClient(timeout=30) as client:
             response = await client.get(
                 "https://generativelanguage.googleapis.com/v1beta/models",
-                params={"key": llm_key, "pageSize": 100},
+                headers={"x-goog-api-key": gemini_key},
+                params={"pageSize": 100},
             )
             if response.status_code == 200:
                 names = [
@@ -66,6 +67,18 @@ async def main() -> None:
                 print("available_generate_models", names[:20])
             else:
                 print("models_list_status", response.status_code)
+
+    if gemini_key and extract_model:
+        async with httpx.AsyncClient(timeout=30) as client:
+            response = await client.post(
+                f"https://generativelanguage.googleapis.com/v1beta/models/{extract_model}:generateContent",
+                headers={"x-goog-api-key": gemini_key, "Content-Type": "application/json"},
+                json={
+                    "contents": [{"role": "user", "parts": [{"text": "Reply with exactly OK"}]}],
+                    "generationConfig": {"temperature": 0, "maxOutputTokens": 8},
+                },
+            )
+            print("extract_model_status", response.status_code, "ok", response.status_code == 200)
 
 
 asyncio.run(main())

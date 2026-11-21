@@ -10,9 +10,9 @@ PROMPTS = Path(__file__).resolve().parent.parent / "prompts"
 
 
 async def gemini_json(system_prompt: str, user_payload: dict, model: str) -> dict:
-    api_key = os.getenv("LLM_API_KEY")
+    api_key = os.getenv("GEMINI_API_KEY")
     if not api_key:
-        raise RuntimeError("LLM_API_KEY is not configured")
+        raise RuntimeError("GEMINI_API_KEY is not configured")
 
     url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
     payload = {
@@ -26,7 +26,7 @@ async def gemini_json(system_prompt: str, user_payload: dict, model: str) -> dic
     async with httpx.AsyncClient(timeout=30) as client:
         response = await client.post(
             url,
-            params={"key": api_key},
+            headers={"x-goog-api-key": api_key, "Content-Type": "application/json"},
             json=payload,
         )
         response.raise_for_status()
@@ -43,9 +43,9 @@ async def gemini_json(system_prompt: str, user_payload: dict, model: str) -> dic
 
 
 async def gemini_extract_image(image_bytes: bytes, mime_type: str, model: str) -> str:
-    api_key = os.getenv("LLM_API_KEY")
+    api_key = os.getenv("GEMINI_API_KEY")
     if not api_key:
-        raise RuntimeError("LLM_API_KEY is not configured")
+        raise RuntimeError("GEMINI_API_KEY is not configured")
 
     url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
     payload = {
@@ -64,7 +64,11 @@ async def gemini_extract_image(image_bytes: bytes, mime_type: str, model: str) -
         "generationConfig": {"temperature": 0},
     }
     async with httpx.AsyncClient(timeout=30) as client:
-        response = await client.post(url, params={"key": api_key}, json=payload)
+        response = await client.post(
+            url,
+            headers={"x-goog-api-key": api_key, "Content-Type": "application/json"},
+            json=payload,
+        )
         response.raise_for_status()
     data = response.json()
     return "".join(

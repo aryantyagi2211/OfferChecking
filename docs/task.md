@@ -274,7 +274,7 @@ Do NOT build: accounts/login, database history, multi-agent orchestration, socia
 - [backend-1.9 2026-11-21] Wired static next steps and the deterministic verdict mapping into report composition.
 - [backend-1.7 2026-11-21] Added four demo fixtures and a verdict script covering deterministic scam, legit and unverified cases.
 - [ui-2.1-b 2026-11-21] Wired the frontend Check button to POST /analyze and receive live step/report SSE events.
-- [blocked 2026-11-21] Demo-case live run is blocked: YOU_API_KEY, LLM_API_KEY and real demo companies are not configured in this workspace.
+- [blocked 2026-11-21] Demo-case live run is blocked pending GEMINI_API_KEY and real demo companies.
 - [ui-backend-2.4 2026-11-21] Added screenshot paste, drag-drop, 10 MB/type checks and Gemini inline-image text extraction.
 - [backend-ui-2.5 2026-11-21] Added 10 MB PDF upload, pypdf text extraction and Gemini fallback for short/scanned PDF text.
 - [backend-ui-2.6 2026-11-21] Added .eml body/header parsing with From vs Reply-To, SPF and DKIM mismatch flags.
@@ -284,6 +284,8 @@ Do NOT build: accounts/login, database history, multi-agent orchestration, socia
 - [keys 2026-11-21] Aryan will create his own .env; the app loads it with python-dotenv, and agents will not read or print key values.
 - [blocked 2026-11-21] You.com key test passed. Gemini key/model inventory returned 400; waiting for a valid Gemini Developer API key and available model names.
 - [blocked 2026-11-21] Gemini test now confirms "API key not valid"; You.com search passed.
+- [blocker 2026-11-21] Project code now uses the Gemini key variable and native Gemini REST. Native key testing is blocked until the local .env file is saved with the new variable name.
+- [keys 2026-11-21] You.com search passed and Gemini native AQ-key generateContent passed. The local env now exposes GEMINI_API_KEY.
 
 ---
 
