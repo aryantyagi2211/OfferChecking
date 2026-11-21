@@ -3,13 +3,14 @@ import email
 import email.policy
 import json
 import os
+import secrets
 import uuid
 from io import BytesIO
 from pathlib import Path
 from typing import Literal
 
 from dotenv import load_dotenv
-from fastapi import FastAPI, File, Form, HTTPException, UploadFile
+from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import StreamingResponse
 from fastapi.staticfiles import StaticFiles
 import httpx
@@ -17,7 +18,13 @@ from pydantic import BaseModel
 from pypdf import PdfReader
 
 from evidence import process_evidence
+from email_headers import email_header_flags
 from extractor import extract_offer
+from gmail_oauth import (
+    gmail_session_id_from_request,
+    load_gmail_offer_text,
+    router as gmail_router,
+)
 from investigator import investigate
 from llm import (
     extract_offer_text_from_document,
@@ -29,9 +36,26 @@ from rule_engine import build_findings
 
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
-load_dotenv(PROJECT_ROOT / ".env", override=True)
+ENV_FILE = PROJECT_ROOT / ".env"
+load_dotenv(ENV_FILE, override=True)
+
+
+def ensure_session_secret() -> None:
+    if os.getenv("SESSION_SECRET", "").strip():
+        return
+    secret = secrets.token_urlsafe(48)
+    contents = ENV_FILE.read_text(encoding="utf-8") if ENV_FILE.exists() else ""
+    with ENV_FILE.open("a", encoding="utf-8", newline="") as env_file:
+        if contents and not contents.endswith(("\n", "\r")):
+            env_file.write("\n")
+        env_file.write(f"SESSION_SECRET={secret}\n")
+    os.environ["SESSION_SECRET"] = secret
+
+
+ensure_session_secret()
 
 app = FastAPI(title="OfferCheck")
+app.include_router(gmail_router)
 FRONTEND_ROOT = PROJECT_ROOT / "frontend"
 
 
@@ -91,19 +115,15 @@ async def normalize_upload_data(
         if not model:
             raise HTTPException(status_code=500, detail="EXTRACT_MODEL is not configured")
         offer_text = await extract_offer_text_from_document(body_text, model)
-        from_address = str(message.get("From", ""))
-        reply_to = str(message.get("Reply-To", ""))
-        received_spf = str(message.get("Received-SPF", ""))
-        authentication = str(message.get("Authentication-Results", ""))
-        flags = []
-        if reply_to and reply_to != from_address:
-            flags.append("Reply-To does not match From")
-        if "fail" in received_spf.lower() or "spf=fail" in authentication.lower():
-            flags.append("SPF failed")
-        if "dkim=fail" in authentication.lower():
-            flags.append("DKIM failed")
+        header_values = {
+            "From": str(message.get("From", "")),
+            "Reply-To": str(message.get("Reply-To", "")),
+            "Received-SPF": str(message.get("Received-SPF", "")),
+            "Authentication-Results": str(message.get("Authentication-Results", "")),
+        }
+        flags = email_header_flags(header_values)
         return (
-            f"{offer_text}\nEmail headers: From: {from_address}\nReply-To: {reply_to}",
+            f"{offer_text}\nEmail headers: From: {header_values['From']}\nReply-To: {header_values['Reply-To']}",
             flags,
         )
 
@@ -112,6 +132,7 @@ async def normalize_upload_data(
 
 @app.post("/analyze", response_model=AnalyzeResponse, status_code=202)
 async def analyze(
+    request: Request,
     text: str = Form(default=""),
     company: str | None = Form(default=None),
     recruiter: str | None = Form(default=None),
@@ -119,6 +140,7 @@ async def analyze(
     url: str | None = Form(default=None),
     domain: str | None = Form(default=None),
     language: Literal["simple_english", "hinglish"] = Form(default="simple_english"),
+    gmail_message_id: str | None = Form(default=None),
     file: UploadFile | None = File(default=None),
 ):
     file_payload = None
@@ -135,8 +157,15 @@ async def analyze(
             "filename": filename,
             "content_type": content_type,
         }
-    if not text.strip() and file_payload is None:
+    if not text.strip() and file_payload is None and not gmail_message_id:
         raise HTTPException(status_code=422, detail="Offer text is required")
+    gmail_session_id = None
+    if gmail_message_id:
+        if file_payload is not None:
+            raise HTTPException(status_code=422, detail="Choose either a Gmail message or an uploaded file.")
+        gmail_session_id = gmail_session_id_from_request(request)
+        if not gmail_session_id:
+            raise HTTPException(status_code=401, detail="Connect Gmail again to analyze that message.")
 
     job_id = uuid.uuid4().hex
     jobs[job_id] = {
@@ -150,6 +179,8 @@ async def analyze(
         },
         "file": file_payload,
         "language": language,
+        "gmail_message_id": gmail_message_id,
+        "gmail_session_id": gmail_session_id,
     }
     return AnalyzeResponse(job_id=job_id)
 
@@ -177,6 +208,12 @@ async def stream(job_id: str):
             })
             offer_text = job["text"]
             file_flags: list[str] = []
+            if job["gmail_message_id"]:
+                offer_text, gmail_flags = await load_gmail_offer_text(
+                    job["gmail_session_id"],
+                    job["gmail_message_id"],
+                )
+                file_flags.extend(gmail_flags)
             if has_file:
                 upload = job["file"]
                 offer_text, file_flags = await normalize_upload_data(

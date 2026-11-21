@@ -201,14 +201,14 @@ Parallel work: Phase 1 (backend) and Phase 2 UI tasks 2.0 to 2.3 can run at the 
 - [x] 2.13 (C, P1) Header Home/Report navigation with live progress and completed results in the Report view
 
 ### Phase 3: Gmail connect (P2, only after Phase 1 and 2 are demo-ready)
-- [ ] 3.1 (C) Google OAuth flow, scope gmail.readonly, Testing mode (unverified-app warning is OK for demo; confirm limits in Google docs)
-- [ ] 3.2 (C) List recent messages (filter: offer/internship/job keywords), user picks one
-- [ ] 3.3 (C) Import message body + headers into the same pipeline (reuse .eml header checks)
-- [ ] 3.4 (G) "Connect Gmail" button + message picker UI
+- [x] 3.1 (C) Google OAuth flow, scope gmail.readonly, Testing mode (unverified-app warning is OK for demo; confirm limits in Google docs)
+- [x] 3.2 (C) List recent messages (filter: offer/internship/job keywords), user picks one
+- [x] 3.3 (C) Import message body + headers into the same pipeline (reuse .eml header checks)
+- [x] 3.4 (G) "Connect Gmail" button + message picker UI
 - Fallback if OAuth eats time: keep `.eml` upload (2.6) as the Gmail story.
 
 ### Phase 4: Polish + submission (reserve the last 1 to 2 hours, do not spend it on features)
-- [ ] 4.1 (A) Freeze features. Only bug fixes after this
+- [x] 4.1 (A) Freeze features. Only bug fixes after this
 - [x] 4.2 (C) Cache demo responses for offline fallback
 - [x] 4.3 (G) README: problem, how it works, architecture diagram, setup, limitations
 - [ ] 4.4 (A) 2 minute demo script. Open with the realistic scam, show the company's own fraud notice contradicting the fee claim, then the UNVERIFIED honesty case
@@ -298,6 +298,8 @@ Do NOT build: accounts/login, database history, multi-agent orchestration, socia
 - [citations-ui 2026-11-21] Mapped You.com singular `snippet` fields, retained query categories across deduplicated results, linked relevant live sources to claim findings, labeled live vs cached reports, and switched the main fictional fee-impersonation demo to Infosys with a disclaimer. Real API and browser SSE checks returned 24 unique live sources; the Gemini fallback still rendered 8 claims with 10 clickable source links.
 - [ui-nav 2026-11-21] Added persistent Home/Report navigation, moved live progress and completed findings into the Report view, and kept Gmail OAuth listed as pending Phase 3 work.
 - [groq-model 2026-11-21] Switched the Groq default and setup docs to `openai/gpt-oss-20b`; verified tests and the configured model before pushing.
+- [gmail-3.1-3.4 2026-11-21] Added read-only Google OAuth with signed state, HMAC-signed HttpOnly session cookie, in-memory token refresh, recent job-email picker, Gmail message import with SPF/DKIM/Reply-To checks, and session-secret generation.
+- [submission-prep 2026-11-21] Hardened ignore rules for local credentials, caches, temp/session files, and rewrote the README for judges and local setup; froze new features.
 
 ---
 

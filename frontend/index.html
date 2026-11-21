@@ -270,12 +270,14 @@
           </div>
         </div>
         <div id="gmailTab" class="hidden">
-          <div class="email-list">
-            <div><span>Northgate HR · Internship Selection Letter</span><button>Check</button></div>
-            <div><span>Talent Team · Congratulations on your offer</span><button>Check</button></div>
-            <div><span>Hiring Desk · Final step: confirm your seat</span><button>Check</button></div>
+          <p class="gmail-status" id="gmailStatus" role="status" aria-live="polite">Checking Gmail connection...</p>
+          <div class="gmail-controls">
+            <button class="primary-button" id="gmailConnectAction" type="button">Connect Gmail</button>
+            <button class="secondary-button hidden" id="gmailRefreshAction" type="button">Refresh emails</button>
+            <button class="secondary-button hidden" id="gmailDisconnectAction" type="button">Disconnect</button>
           </div>
-          <p class="card-note">We only read the email you pick. Read-only access.</p>
+          <div class="email-list" id="gmailMessageList"></div>
+          <p class="card-note">Read-only access. Choose an email to copy it into the offer box; nothing is analyzed until you click “Check this offer”.</p>
         </div>
       </section>
     </div>

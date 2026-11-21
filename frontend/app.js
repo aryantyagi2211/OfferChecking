@@ -15,6 +15,22 @@ let attachedFile = null;
 let attachmentPreviewUrl = null;
 let analysisRunning = false;
 let reportAvailable = false;
+let gmailReturnMessage = "";
+let currentGmailMessageId = null;
+
+const gmailErrorMessages = {
+  not_configured: "Gmail isn't configured yet. Add GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET to your local .env.",
+  session_secret_missing: "Session signing is not configured. Restart OfferCheck to generate SESSION_SECRET.",
+  state_invalid: "Google sign-in expired or could not be verified. Please try connecting again.",
+  cancelled: "Google sign-in was cancelled.",
+  authorization_failed: "Google did not return an authorization code. Please try again.",
+  token_exchange_failed: "Could not finish Google sign-in. Check the OAuth client and redirect URI settings.",
+};
+const gmailErrorCode = new URLSearchParams(window.location.search).get("gmail_error");
+if (gmailErrorCode) {
+  gmailReturnMessage = gmailErrorMessages[gmailErrorCode] || "Gmail could not connect. Please try again.";
+  window.history.replaceState({}, "", window.location.pathname);
+}
 
 const presets = {
   fee: {
@@ -180,6 +196,7 @@ async function showReport(file = attachedFile) {
     const body = new FormData();
     body.append("text", text);
     body.append("language", selectedLanguage);
+    if (currentGmailMessageId) body.append("gmail_message_id", currentGmailMessageId);
     for (const [field, id] of Object.entries({
       company: "companyInput",
       recruiter: "recruiterInput",
@@ -575,6 +592,7 @@ document.querySelectorAll("[data-preset]").forEach(button => {
   button.addEventListener("click", () => {
     if (analysisRunning) return;
     clearFileAttachment();
+    currentGmailMessageId = null;
     activeDemoPreset = button.dataset.preset;
     const preset = presets[activeDemoPreset];
     offerText.value = preset.text;
@@ -589,7 +607,10 @@ document.querySelectorAll("[data-preset]").forEach(button => {
     }
   });
 });
-offerText.addEventListener("input", () => { activeDemoPreset = null; });
+offerText.addEventListener("input", () => {
+  activeDemoPreset = null;
+  currentGmailMessageId = null;
+});
 document.querySelectorAll(".optional-fields input").forEach(input => {
   input.addEventListener("input", () => { activeDemoPreset = null; });
 });
@@ -603,6 +624,7 @@ reportTab.addEventListener("click", () => setActiveView("report"));
 function openModal(tab = "upload") {
   modalBackdrop.classList.remove("hidden");
   selectTab(tab);
+  if (tab === "gmail") refreshGmailStatus();
 }
 function closeModal() { modalBackdrop.classList.add("hidden"); }
 
@@ -615,10 +637,158 @@ function selectTab(tabName) {
 document.getElementById("uploadButton").addEventListener("click", () => openModal("upload"));
 document.getElementById("gmailButton").addEventListener("click", () => openModal("gmail"));
 document.getElementById("closeModal").addEventListener("click", closeModal);
+document.getElementById("gmailConnectAction").addEventListener("click", () => {
+  window.location.assign("/auth/google/start");
+});
+document.getElementById("gmailRefreshAction").addEventListener("click", loadGmailMessages);
+document.getElementById("gmailDisconnectAction").addEventListener("click", disconnectGmail);
 modalBackdrop.addEventListener("click", event => {
   if (event.target === modalBackdrop) closeModal();
 });
 document.querySelectorAll(".tab").forEach(tab => tab.addEventListener("click", () => selectTab(tab.dataset.tab)));
+
+function setGmailStatus(message, kind = "info") {
+  const status = document.getElementById("gmailStatus");
+  status.textContent = message;
+  status.className = `gmail-status ${kind}`;
+}
+
+async function responseError(response) {
+  try {
+    const body = await response.json();
+    return typeof body.detail === "string" ? body.detail : "Gmail could not complete that request.";
+  } catch {
+    return "Gmail could not complete that request.";
+  }
+}
+
+async function refreshGmailStatus() {
+  const connectButton = document.getElementById("gmailConnectAction");
+  const refreshButton = document.getElementById("gmailRefreshAction");
+  const disconnectButton = document.getElementById("gmailDisconnectAction");
+  const messageList = document.getElementById("gmailMessageList");
+  messageList.replaceChildren();
+  setGmailStatus("Checking Gmail connection...");
+  try {
+    const response = await fetch("/api/gmail/status");
+    if (!response.ok) throw new Error(await responseError(response));
+    const status = await response.json();
+    connectButton.classList.toggle("hidden", status.connected);
+    connectButton.disabled = !status.configured;
+    refreshButton.classList.toggle("hidden", !status.connected);
+    disconnectButton.classList.toggle("hidden", !status.connected);
+    if (!status.configured) {
+      setGmailStatus(
+        gmailReturnMessage || "Gmail is not configured. Add Google OAuth credentials to the local .env.",
+        "error"
+      );
+      return;
+    }
+    if (!status.connected) {
+      setGmailStatus(gmailReturnMessage || "Connect your account to choose a recent job-related email.", gmailReturnMessage ? "error" : "info");
+      return;
+    }
+    if (gmailReturnMessage) {
+      setGmailStatus(gmailReturnMessage, "error");
+      gmailReturnMessage = "";
+    } else {
+      setGmailStatus("Gmail connected. Loading recent job-related emails...");
+    }
+    await loadGmailMessages();
+  } catch (error) {
+    connectButton.classList.remove("hidden");
+    connectButton.disabled = false;
+    refreshButton.classList.add("hidden");
+    disconnectButton.classList.add("hidden");
+    setGmailStatus(error.message || "Could not check the Gmail connection.", "error");
+  }
+}
+
+function renderGmailMessages(messages) {
+  const messageList = document.getElementById("gmailMessageList");
+  messageList.replaceChildren();
+  for (const message of messages) {
+    const card = document.createElement("article");
+    card.className = "email-card";
+    const heading = document.createElement("strong");
+    heading.textContent = message.subject || "(no subject)";
+    const details = document.createElement("div");
+    details.className = "email-meta";
+    details.textContent = [message.sender, message.date].filter(Boolean).join(" · ");
+    const snippet = document.createElement("p");
+    snippet.textContent = message.snippet || message.body || "";
+    const useButton = document.createElement("button");
+    useButton.className = "secondary-button";
+    useButton.type = "button";
+    useButton.textContent = "Use this email";
+    useButton.addEventListener("click", () => importGmailMessage(message));
+    card.append(heading, details, snippet, useButton);
+    messageList.append(card);
+  }
+}
+
+async function loadGmailMessages() {
+  const refreshButton = document.getElementById("gmailRefreshAction");
+  refreshButton.disabled = true;
+  setGmailStatus("Loading recent job-related emails...");
+  try {
+    const response = await fetch("/api/gmail/messages");
+    if (response.status === 401) {
+      await refreshGmailStatus();
+      return;
+    }
+    if (!response.ok) throw new Error(await responseError(response));
+    const data = await response.json();
+    const messages = Array.isArray(data.messages) ? data.messages : [];
+    renderGmailMessages(messages);
+    setGmailStatus(
+      messages.length
+        ? `Gmail connected · ${messages.length} recent email${messages.length === 1 ? "" : "s"} found.`
+        : "Gmail connected · no recent job-related emails found.",
+      "success"
+    );
+  } catch (error) {
+    setGmailStatus(error.message || "Could not load Gmail messages. Please try again.", "error");
+  } finally {
+    refreshButton.disabled = false;
+  }
+}
+
+async function disconnectGmail() {
+  const button = document.getElementById("gmailDisconnectAction");
+  button.disabled = true;
+  try {
+    const response = await fetch("/api/gmail/disconnect", { method: "POST" });
+    if (!response.ok) throw new Error(await responseError(response));
+    gmailReturnMessage = "";
+    await refreshGmailStatus();
+  } catch (error) {
+    setGmailStatus(error.message || "Could not disconnect Gmail.", "error");
+  } finally {
+    button.disabled = false;
+  }
+}
+
+function importGmailMessage(message) {
+  const headers = [
+    message.subject ? `Subject: ${message.subject}` : "",
+    message.sender ? `From: ${message.sender}` : "",
+    message.date ? `Date: ${message.date}` : "",
+  ].filter(Boolean);
+  const body = message.body || message.snippet || "";
+  offerText.value = `${headers.join("\n")}${headers.length ? "\n\n" : ""}${body}`.trim();
+  currentGmailMessageId = message.id;
+  activeDemoPreset = null;
+  clearFileAttachment();
+  for (const id of ["companyInput", "recruiterInput", "roleInput", "urlInput", "domainInput"]) {
+    document.getElementById(id).value = "";
+  }
+  document.getElementById("errorNote").classList.add("hidden");
+  closeModal();
+  setActiveView("home");
+  offerText.focus();
+}
+
 document.getElementById("dropZone").addEventListener("click", () => document.getElementById("fileInput").click());
 document.getElementById("pasteScreenshot").addEventListener("click", captureScreen);
 document.getElementById("closeSources").addEventListener("click", closeSources);
@@ -640,6 +810,7 @@ function processFile(file) {
     showCaptureStatus("An analysis is already running. This file was not attached.");
     return;
   }
+  currentGmailMessageId = null;
   if (activeDemoPreset) {
     offerText.value = "";
     for (const id of ["companyInput", "recruiterInput", "roleInput", "urlInput", "domainInput"]) {

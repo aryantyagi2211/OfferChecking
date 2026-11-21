@@ -1,6 +1,40 @@
+# Local environment and credentials
 .env
-node_modules
-__pycache__
-venv
-.venv
+.env.*
+!.env.example
+*.pem
+*.p12
+*.key
+credentials.json
+client_secret*.json
+token.json
+token_*.json
+
+# Python
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+
+# Test and tool caches
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Node
+node_modules/
+
+# Local temp and session data
+.tmp/
+tmp/
+temp/
+session-state/
+session_state/
+sessions/
+*.session
+*.tmp
+*.temp
+*.log
+
+# OS metadata
 .DS_Store
