@@ -1,7 +1,7 @@
 # OfferCheck
 
 **Real-time job, internship & freelance offer verification powered by live You.com evidence.**
-
+**Live App:** [https://offercheck-lfok.onrender.com/](https://offercheck-lfok.onrender.com/)
 ## The problem
 
 Scams can borrow a real company’s name and look convincing. Candidates face impersonated recruiters, advance-fee traps, WhatsApp/Hinglish pitches, and spoofed email addresses.
