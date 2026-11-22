@@ -1,6 +1,7 @@
 # OfferCheck
 
 **Real-time job, internship & freelance offer verification powered by live You.com evidence.**
+
 **Live App:** [https://offercheck-lfok.onrender.com/](https://offercheck-lfok.onrender.com/)
 ## The problem
 
